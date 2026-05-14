@@ -1,0 +1,18 @@
+[
+  {
+    "id": "hz_f9eaee69",
+    "type": "building_collapse",
+    "label": "Building collapse with people trapped",
+    "geometry": {
+      "type": "circle",
+      "center": [
+        12.9784,
+        77.6408
+      ],
+      "radius_km": 0.3
+    },
+    "severity": "critical",
+    "blocked": true,
+    "color": "#ff0000"
+  }
+]

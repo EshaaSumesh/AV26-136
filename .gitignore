@@ -1,0 +1,58 @@
+# ── Credentials — NEVER commit ───────────────────────────────
+.env
+.env.*
+!.env.example
+credentials/
+*.pem
+*.key
+*.p12
+
+# ── Python ───────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Generated data artifacts ─────────────────────────────────
+*.pkl
+*.pickle
+data/cities/*/road_graph.pkl
+backend/data/cities/*/road_graph.pkl
+
+# Citizen-uploaded files and identity data — user privacy
+backend/data/cities/*/uploads/
+backend/data/cities/*/uploads/**
+backend/data/cities/*/citizens.json
+
+# Local caches
+cache/
+.cache/
+*.log
+
+# ── OS ───────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDE ──────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Frontend (Next.js) ───────────────────────────────────────
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/coverage/
+frontend/.env.local
+frontend/.env.*.local
+frontend/.vercel/
+frontend/*.tsbuildinfo

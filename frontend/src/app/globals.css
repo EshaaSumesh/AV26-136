@@ -1,0 +1,248 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ResQRoute Design System
+   Two palettes: Public Trust (citizen, light) · Field Operations (admin, dark)
+═══════════════════════════════════════════════════════════════════════════ */
+
+@import url("https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Noto+Sans:wght@300;400;500;600&family=Noto+Sans+Mono:wght@400;500&display=swap");
+
+:root {
+  /* Public Trust — citizen */
+  --forest:      #143D2E;
+  --deep-green:  #1A5C41;
+  --mid-green:   #2E8B63;
+  --light-green: #6BBD95;
+  --mint:        #D4F0E2;
+  --mint-white:  #F2F7F4;
+  --warm-white:  #FAFAF8;
+  --body-text:   #1F3028;
+  --muted-text:  #4A6455;
+  --rule-color:  #C3D9CC;
+  --emrg-red:    #B91C1C;
+  --emrg-pale:   #FEE2E2;
+  --warn-amber:  #92400E;
+  --warn-pale:   #FEF3C7;
+  --safe-green:  #166534;
+  --safe-pale:   #DCFCE7;
+
+  /* Field Operations — authority */
+  --onyx:        #1C2128;
+  --onyx-2:      #111417;
+  --slate:       #2D3748;
+  --steel:       #4A5568;
+  --steel-light: #718096;
+  --admin-text:  #E2E8F0;
+  --admin-muted: #A0AEC0;
+  --admin-rule:  #374151;
+  --safety-org:  #E86A10;
+  --org-pale:    rgba(232, 106, 16, 0.15);
+  --danger:      #D32F2F;
+  --cleared:     #2E7D32;
+
+  /* Fonts */
+  --font-serif:  "Noto Serif", Georgia, serif;
+  --font-sans:   "Noto Sans", system-ui, -apple-system, sans-serif;
+  --font-mono:   "Noto Sans Mono", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: var(--font-sans);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background: var(--warm-white);
+  color: var(--body-text);
+}
+
+/* ── Scrollbars ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--rule-color);
+}
+
+.scroll-thin::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 3px;
+}
+
+/* When inside a dark surface, use a dimmer scrollbar */
+.dark-scope ::-webkit-scrollbar-thumb {
+  background: rgba(160, 174, 192, 0.18);
+}
+
+/* ── Map (mapbox) overrides ── */
+@import "mapbox-gl/dist/mapbox-gl.css";
+
+.mapboxgl-popup-content {
+  background: var(--onyx) !important;
+  color: var(--admin-text) !important;
+  border: 1px solid var(--admin-rule);
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.mapboxgl-popup-tip {
+  border-top-color: var(--onyx) !important;
+  border-bottom-color: var(--onyx) !important;
+}
+.mapboxgl-ctrl-attrib,
+.mapboxgl-ctrl-logo {
+  opacity: 0.4;
+}
+
+/* ═══════════════════════════════
+   Animations
+═══════════════════════════════ */
+
+@keyframes live-pulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(107, 189, 149, 0.55);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 0 6px rgba(107, 189, 149, 0);
+  }
+}
+.live-pulse {
+  animation: live-pulse 1.8s ease infinite;
+}
+.live-pulse-orange {
+  animation: live-pulse 1.5s ease infinite;
+  box-shadow: 0 0 0 0 rgba(232, 106, 16, 0.55);
+}
+.live-pulse-orange {
+  animation-name: live-pulse-orange;
+}
+@keyframes live-pulse-orange {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(232, 106, 16, 0.55);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 0 6px rgba(232, 106, 16, 0);
+  }
+}
+
+@keyframes ring-pulse {
+  0% { transform: scale(1); opacity: 0.85; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.ring-pulse::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1px solid rgba(211, 47, 47, 0.45);
+  animation: ring-pulse 1.5s ease infinite;
+}
+
+@keyframes pulse-ring-red {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+  70% { box-shadow: 0 0 0 18px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+.pulse-ring {
+  animation: pulse-ring-red 1.6s infinite;
+}
+
+/* ═══════════════════════════════
+   Utility classes
+═══════════════════════════════ */
+
+.font-serif-display { font-family: var(--font-serif); }
+.font-sans-ui      { font-family: var(--font-sans); }
+.font-mono-ops     { font-family: var(--font-mono); }
+
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--mid-green);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.kicker::before {
+  content: "";
+  display: block;
+  width: 28px;
+  height: 2px;
+  background: currentColor;
+}
+.kicker.dark { color: var(--safety-org); }
+
+.serif-h {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.12;
+  color: var(--forest);
+}
+.serif-h em { font-style: italic; color: var(--mid-green); }
+.serif-h strong { font-weight: 600; }
+.serif-h.on-dark { color: var(--admin-text); }
+.serif-h.on-dark em { color: var(--safety-org); }
+.serif-h.on-forest { color: var(--warm-white); }
+.serif-h.on-forest em { color: var(--light-green); }
+
+.mono-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--steel-light);
+}
+.mono-label.green { color: var(--mid-green); }
+.mono-label.orange { color: var(--safety-org); }
+.mono-label.bright { color: var(--admin-text); }
+
+/* Map grid backdrop (used for map placeholders) */
+.map-grid {
+  background-image:
+    linear-gradient(rgba(74, 85, 104, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 85, 104, 0.2) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.severity-1 { color: #4ade80; }
+.severity-2 { color: #facc15; }
+.severity-3 { color: #fb923c; }
+.severity-4 { color: #f87171; }
+.severity-5 { color: #ef4444; }
+
+/* Reveal-on-scroll helper (kept for parity if any landing page uses it) */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}

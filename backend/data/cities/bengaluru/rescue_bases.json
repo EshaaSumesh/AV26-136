@@ -1,0 +1,42 @@
+[
+  {
+    "id": "base_001",
+    "name": "NDRF Battalion HQ Yelahanka",
+    "coordinates": [13.1007, 77.5963],
+    "teams_available": 4,
+    "type": "ndrf",
+    "specialization": ["flood", "earthquake", "building_collapse"]
+  },
+  {
+    "id": "base_002",
+    "name": "Fire Station Koramangala",
+    "coordinates": [12.9352, 77.6245],
+    "teams_available": 3,
+    "type": "fire",
+    "specialization": ["fire", "building_collapse", "road_block"]
+  },
+  {
+    "id": "base_003",
+    "name": "Police Emergency HQ Shivajinagar",
+    "coordinates": [12.9857, 77.6056],
+    "teams_available": 5,
+    "type": "police",
+    "specialization": ["road_block", "flood", "other"]
+  },
+  {
+    "id": "base_004",
+    "name": "SDRF Station Hebbal",
+    "coordinates": [13.0358, 77.5970],
+    "teams_available": 3,
+    "type": "sdrf",
+    "specialization": ["flood", "landslide", "cyclone"]
+  },
+  {
+    "id": "base_005",
+    "name": "Fire Station JP Nagar",
+    "coordinates": [12.9063, 77.5857],
+    "teams_available": 2,
+    "type": "fire",
+    "specialization": ["fire", "building_collapse"]
+  }
+]

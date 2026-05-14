@@ -1,0 +1,30 @@
+# ResQRoute — Python Dependencies (Python 3.9+)
+
+# LLM + Agent Framework
+langgraph>=0.2.0
+langchain-google-vertexai>=2.0.0
+langchain-core>=0.3.0
+google-cloud-aiplatform>=1.60.0
+
+# Web Framework
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+websockets>=12.0
+pydantic>=2.5.0
+eval_type_backport>=0.2.0
+python-dotenv>=1.0.0
+python-multipart>=0.0.9
+httpx>=0.27.0
+
+# GIS / Routing
+osmnx>=1.9.0
+networkx>=2.8,<3.3
+geopy>=2.4.0
+scikit-learn>=1.5.0
+
+# Data
+orjson>=3.10.0
+
+# Utilities
+tenacity>=9.0.0
+typing_extensions>=4.5.0

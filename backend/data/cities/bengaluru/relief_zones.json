@@ -1,0 +1,32 @@
+[
+  {
+    "id": "relief_yelahanka_school",
+    "name": "Yelahanka Govt School Camp",
+    "coordinates": [13.1010, 77.5965],
+    "capacity": 800
+  },
+  {
+    "id": "relief_indiranagar_metro",
+    "name": "Indiranagar Metro Higher Ground",
+    "coordinates": [12.9784, 77.6408],
+    "capacity": 600
+  },
+  {
+    "id": "relief_jp_nagar_community",
+    "name": "JP Nagar Community Hall",
+    "coordinates": [12.9063, 77.5857],
+    "capacity": 400
+  },
+  {
+    "id": "relief_majestic_terminal",
+    "name": "Majestic Bus Terminal Shelter",
+    "coordinates": [12.9767, 77.5713],
+    "capacity": 1500
+  },
+  {
+    "id": "relief_hebbal_stadium",
+    "name": "Hebbal Stadium Camp",
+    "coordinates": [13.0360, 77.5980],
+    "capacity": 1200
+  }
+]
