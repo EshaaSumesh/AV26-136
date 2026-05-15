@@ -133,6 +133,62 @@ export interface ImageUploadResult {
   size_bytes: number;
 }
 
+export interface RescueBase {
+  id: string;
+  name: string;
+  coordinates: Coordinates;
+  teams_available: number;
+  type: string;
+  specialization: string[];
+}
+
+export interface ResourcesPayload {
+  city: string;
+  base_count: number;
+  total_teams_available: number;
+  by_type: Record<string, number>;
+  bases: RescueBase[];
+}
+
+export interface CitizenSummary {
+  citizen_id: string;
+  created_at?: string;
+  last_seen?: string;
+  last_location: { lat: number; lng: number } | null;
+  report_count: number;
+  sos_count: number;
+  recent_reports: CitizenHistoryEntry[];
+}
+
+export interface CitizenListPayload {
+  citizen_count: number;
+  total_reports: number;
+  total_sos: number;
+  citizens: CitizenSummary[];
+}
+
+export interface DataFeed {
+  id: string;
+  name: string;
+  kind: string;
+  configured: boolean;
+  auth: "api-key" | "none" | "service-account" | string;
+  purpose: string;
+  used_by: string[];
+}
+
+export interface DataFeedsPayload {
+  feed_count: number;
+  feeds: DataFeed[];
+}
+
+export interface VertexRegionsPayload {
+  model: string;
+  project: string;
+  regions: string[];
+  region_count: number;
+}
+
 export interface PublicAlert {
   broadcast_id: string;
   message: string;

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { WS_BASE } from "./api";
 import type { AgentEvent } from "./types";
 
+
 export interface WsMessage {
   type: string;
   data: any;
@@ -58,9 +59,34 @@ export function useAuthorityWS() {
   return { connected, events, hazards, routes };
 }
 
+export interface IncidentStageUpdate {
+  incident_id: string;
+  citizen_id: string;
+  stage:
+    | "supervisor"
+    | "situation_awareness"
+    | "hazard_assessment"
+    | "communications"
+    | "dispatch_strategist"
+    | "negotiation"
+    | "route_optimizer";
+  status: "running" | "done" | "skipped" | "error";
+  caption: string;
+  // Optional extras
+  mission_id?: string;
+  base_name?: string;
+  rounds?: number;
+  eta_minutes?: number;
+  distance_km?: number;
+  outcome?: string;
+  receivedAt: number;
+}
+
 export function useCitizenWS(citizenId: string) {
   const [connected, setConnected] = useState(false);
   const [alerts, setAlerts] = useState<any[]>([]);
+  const [stageUpdates, setStageUpdates] = useState<IncidentStageUpdate[]>([]);
+  const [agentEvents, setAgentEvents] = useState<AgentEvent[]>([]);
 
   useEffect(() => {
     if (!citizenId) return;
@@ -82,6 +108,18 @@ export function useCitizenWS(citizenId: string) {
           const parsed: WsMessage = JSON.parse(msg.data);
           if (parsed.type === "public_alert") {
             setAlerts((prev) => [parsed.data, ...prev].slice(0, 20));
+          } else if (parsed.type === "incident.stage") {
+            const update: IncidentStageUpdate = {
+              ...(parsed.data as Omit<IncidentStageUpdate, "receivedAt">),
+              receivedAt: Date.now(),
+            };
+            setStageUpdates((prev) => [...prev, update].slice(-200));
+          } else if (parsed.type === "incident.agent_event") {
+            const ev = parsed.data as AgentEvent;
+            setAgentEvents((prev) => {
+              if (prev.some((e) => e.id === ev.id)) return prev;
+              return [ev, ...prev].slice(0, 400);
+            });
           }
         } catch {
           // ignore
@@ -96,5 +134,5 @@ export function useCitizenWS(citizenId: string) {
     };
   }, [citizenId]);
 
-  return { connected, alerts };
+  return { connected, alerts, stageUpdates, agentEvents };
 }

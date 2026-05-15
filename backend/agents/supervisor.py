@@ -12,6 +12,7 @@ Flow (Phase 3):
 """
 from __future__ import annotations
 
+import contextvars
 import json
 import logging
 import re
@@ -41,6 +42,25 @@ _route_agent = None
 _comms_agent = None
 
 MAX_NEGOTIATION_ROUNDS = 3
+
+# Per-task context: lets every nested emit call pick up the current
+# incident_id / citizen_id without threading it through every signature.
+# Set by `process_incident` for the lifetime of one pipeline run.
+_current_incident: contextvars.ContextVar[Optional[dict]] = contextvars.ContextVar(
+    "_current_incident", default=None
+)
+
+
+def _ctx_incident_meta() -> dict:
+    inc = _current_incident.get()
+    if not inc:
+        return {}
+    meta = {}
+    if inc.get("incident_id"):
+        meta["incident_id"] = inc["incident_id"]
+    if inc.get("citizen_id"):
+        meta["citizen_id"] = inc["citizen_id"]
+    return meta
 
 
 def _get_situation():
@@ -80,25 +100,88 @@ def _get_comms():
 
 async def _emit_reasoning(agent_name: str, thought: str, context: Optional[dict] = None):
     bus = get_bus()
+    payload = {
+        "agent": agent_name,
+        "thought": thought,
+        "context": context or {},
+        **_ctx_incident_meta(),
+    }
     await bus.publish(Event(
         type=EventType.AGENT_REASONING,
-        payload={"agent": agent_name, "thought": thought, "context": context or {}},
+        payload=payload,
         source_agent=agent_name,
     ))
 
 
+# ── Citizen-facing stage updates ───────────────────────────────────────────
+#
+# Pipeline progress is also pushed directly to the citizen who submitted
+# the incident, so the citizen page can render a per-incident progress
+# tracker. We bypass the event bus here because these messages are
+# strictly per-citizen and shouldn't be persisted in the agent log.
+
+async def _emit_stage(
+    incident: dict,
+    stage: str,
+    status: str,
+    caption: str,
+    extra: Optional[dict] = None,
+) -> None:
+    """Push a stage update to the owning citizen's WebSocket.
+
+    `stage` is one of:
+        situation_awareness, hazard_assessment, communications,
+        dispatch_strategist, negotiation, route_optimizer, supervisor.
+    `status` is one of: running, done, skipped, error.
+    """
+    citizen_id = incident.get("citizen_id")
+    if not citizen_id:
+        return
+    from backend.core.ws_manager import get_ws
+
+    payload = {
+        "incident_id": incident.get("incident_id"),
+        "citizen_id": citizen_id,
+        "stage": stage,
+        "status": status,
+        "caption": caption,
+    }
+    if extra:
+        payload.update(extra)
+
+    try:
+        await get_ws().send_citizens(
+            [citizen_id],
+            {"type": "incident.stage", "data": payload},
+        )
+    except Exception as exc:  # pragma: no cover — best-effort delivery
+        logger.debug("citizen stage emit failed: %s", exc)
+
+
 async def _emit_tool_call(agent_name: str, tool: str, args: dict, result_summary: str):
     bus = get_bus()
+    payload = {
+        "agent": agent_name,
+        "tool": tool,
+        "args": args,
+        "result_summary": result_summary,
+        **_ctx_incident_meta(),
+    }
     await bus.publish(Event(
         type=EventType.AGENT_TOOL_CALL,
-        payload={"agent": agent_name, "tool": tool, "args": args, "result_summary": result_summary},
+        payload=payload,
         source_agent=agent_name,
     ))
 
 
 async def _emit_mission_event(event_type: EventType, mission_id: str, payload: dict):
     bus = get_bus()
-    await bus.publish(Event(type=event_type, payload={"mission_id": mission_id, **payload}, source_agent="supervisor"))
+    full_payload = {
+        "mission_id": mission_id,
+        **_ctx_incident_meta(),
+        **payload,
+    }
+    await bus.publish(Event(type=event_type, payload=full_payload, source_agent="supervisor"))
 
 
 def _extract_agent_steps(result: dict) -> list:
@@ -184,9 +267,157 @@ async def run_dispatch(situation_result: str, hazard_result: str, incident: dict
     return await _run_agent(_get_dispatch(), _build_dispatch_prompt(situation_result, hazard_result, incident), "dispatch_strategist")
 
 
-async def run_route_optimization(dispatch_result: str, incident: dict) -> dict:
-    await _emit_reasoning("route_optimizer", "Computing candidate routes with hazard avoidance...")
-    return await _run_agent(_get_route(), _build_route_prompt(dispatch_result, incident), "route_optimizer")
+async def run_route_optimization(
+    dispatch_result: str,
+    incident: dict,
+    accepted_base: Optional[dict] = None,
+    mission=None,
+) -> dict:
+    """Compute the rescue route.
+
+    Primary path: run the route_optimizer ReAct agent (LLM + tool calls).
+    Fallback: if the LLM blows up (Gemini quota / network / timeout), call
+    the deterministic OSM router directly so the stage still completes,
+    populates `mission.route_*` fields, and emits the path to the bus.
+    """
+    await _emit_reasoning(
+        "route_optimizer",
+        "Computing candidate routes with hazard avoidance...",
+    )
+    try:
+        return await _run_agent(
+            _get_route(),
+            _build_route_prompt(dispatch_result, incident),
+            "route_optimizer",
+        )
+    except Exception as exc:
+        # Don't let a flaky / rate-limited LLM block the rescue.
+        logger.warning(
+            "route_optimizer LLM agent failed (%s) — falling back to "
+            "deterministic OSM router.",
+            type(exc).__name__,
+        )
+        return await _route_fallback_osm(incident, accepted_base, mission, exc)
+
+
+async def _route_fallback_osm(
+    incident: dict,
+    accepted_base: Optional[dict],
+    mission,
+    failure_exc: Exception,
+) -> dict:
+    """Deterministic route computation when the LLM agent is unavailable.
+
+    We pull live hazard zones from the in-memory store, run NetworkX over
+    the cached OSM graph, populate the mission's route fields, and emit a
+    transparent reasoning event so the operator knows the LLM was bypassed.
+    """
+    from backend.tools.osm_router import compute_osm_route as _osm_route_tool
+    from backend.tools.hazard_db import get_hazard_zones as _get_hz
+
+    incident_coords = incident.get("coordinates")
+    if not (
+        accepted_base
+        and isinstance(accepted_base.get("coordinates"), (list, tuple))
+        and len(accepted_base["coordinates"]) >= 2
+        and isinstance(incident_coords, (list, tuple))
+        and len(incident_coords) >= 2
+    ):
+        msg = "Cannot run fallback: missing base or incident coordinates."
+        await _emit_reasoning("route_optimizer", msg)
+        return {"result": msg, "steps": [], "fallback": True}
+
+    base_lat, base_lng = accepted_base["coordinates"][0], accepted_base["coordinates"][1]
+    inc_lat, inc_lng = incident_coords[0], incident_coords[1]
+
+    # Pull hazard zones for avoidance
+    try:
+        raw_hz = _get_hz.invoke({"include_expired": False})
+        if isinstance(raw_hz, dict):
+            hazard_zones = raw_hz.get("zones", []) or []
+        elif isinstance(raw_hz, list):
+            hazard_zones = raw_hz
+        else:
+            hazard_zones = []
+    except Exception:
+        hazard_zones = []
+
+    await _emit_tool_call(
+        "route_optimizer",
+        "compute_osm_route",
+        {
+            "origin_lat": base_lat,
+            "origin_lng": base_lng,
+            "dest_lat": inc_lat,
+            "dest_lng": inc_lng,
+            "hazard_zones": f"{len(hazard_zones)} zones",
+            "strategy": "all_hazards",
+            "_fallback_reason": type(failure_exc).__name__,
+        },
+        "deterministic OSM fallback",
+    )
+
+    try:
+        route_result = _osm_route_tool.invoke({
+            "origin_lat": float(base_lat),
+            "origin_lng": float(base_lng),
+            "dest_lat": float(inc_lat),
+            "dest_lng": float(inc_lng),
+            "hazard_zones": hazard_zones,
+            "strategy": "all_hazards",
+        })
+    except Exception as exc:
+        msg = f"Deterministic OSM router also failed: {type(exc).__name__}: {exc}"
+        await _emit_reasoning("route_optimizer", msg)
+        return {"result": msg, "steps": [], "fallback": True}
+
+    distance_km = route_result.get("distance_km")
+    eta_min = route_result.get("eta_minutes")
+    status = route_result.get("status", "ok")
+    path_len = len(route_result.get("path") or [])
+    avoided = route_result.get("avoided_hazards") or []
+
+    # Populate mission fields so the supervisor's downstream emit works.
+    if mission is not None:
+        if isinstance(distance_km, (int, float)):
+            mission.route_distance_km = float(distance_km)
+        if isinstance(eta_min, (int, float)):
+            mission.route_eta_minutes = float(eta_min)
+
+    summary = (
+        f"Fallback route ready: {distance_km} km, ~{eta_min} min, "
+        f"{path_len} waypoints"
+        + (f", avoided {len(avoided)} hazard zone(s)" if avoided else "")
+        + ". (LLM agent skipped — Gemini quota / error.)"
+    )
+    await _emit_reasoning("route_optimizer", summary)
+
+    # Emit ROUTE_COMPUTED event so frontend map can draw the path.
+    try:
+        await get_bus().publish(Event(
+            type=EventType.ROUTE_COMPUTED,
+            payload={
+                "mission_id": getattr(mission, "mission_id", None),
+                "incident_id": incident.get("incident_id"),
+                "citizen_id": incident.get("citizen_id"),
+                "distance_km": distance_km,
+                "eta_minutes": eta_min,
+                "path": route_result.get("path"),
+                "status": status,
+                "avoided_hazards": avoided,
+                "fallback": True,
+            },
+            source_agent="route_optimizer",
+        ))
+    except Exception as exc:
+        logger.debug("route fallback ROUTE_COMPUTED emit failed: %s", exc)
+
+    return {
+        "result": summary,
+        "steps": [{"type": "tool_call", "tool": "compute_osm_route", "args": {}}],
+        "fallback": True,
+        "raw": route_result,
+    }
 
 
 async def run_communications(situation_result: str, hazard_result: str, incident: dict) -> dict:
@@ -338,27 +569,87 @@ async def process_incident(incident: dict) -> dict:
     results = {"incident": incident, "agent_outputs": {}}
     tracker = get_tracker()
 
+    # Bind incident_id / citizen_id to this asyncio task so all nested
+    # emits (reasoning, tool calls, mission events) carry the same metadata.
+    token = _current_incident.set(incident)
+    try:
+        return await _process_incident_inner(incident, results, tracker)
+    finally:
+        _current_incident.reset(token)
+
+
+async def _process_incident_inner(incident: dict, results: dict, tracker) -> dict:
+    await _emit_stage(
+        incident,
+        "supervisor",
+        "running",
+        "Report received. Coordinating six agents to evaluate your incident.",
+    )
+
     # Step 1: Situation Awareness
+    await _emit_stage(
+        incident,
+        "situation_awareness",
+        "running",
+        "Reading your description, geocoding, and corroborating with weather, news, and disaster feeds.",
+    )
     situation = await run_situation_assessment(incident)
     results["agent_outputs"]["situation"] = situation
     situation_text = situation.get("result", "")
+    await _emit_stage(
+        incident,
+        "situation_awareness",
+        "done",
+        "Situation classified.",
+    )
 
     is_disaster = "is_disaster: true" in situation_text.lower() or \
                   "severity" in situation_text.lower()
 
     if not is_disaster and "not a disaster" in situation_text.lower():
         await _emit_reasoning("supervisor", "Situation classified as non-disaster. Pipeline terminated.")
+        await _emit_stage(
+            incident,
+            "supervisor",
+            "done",
+            "Classified as non-emergency. No dispatch needed — stay alert and call 112 if conditions change.",
+            {"outcome": "non_disaster"},
+        )
         results["terminated_at"] = "situation_awareness"
         return results
 
     # Step 2: Hazard Assessment
+    await _emit_stage(
+        incident,
+        "hazard_assessment",
+        "running",
+        "Deciding whether to declare or update a hazard zone around your location.",
+    )
     hazard = await run_hazard_assessment(situation_text, incident)
     results["agent_outputs"]["hazard"] = hazard
     hazard_text = hazard.get("result", "")
+    await _emit_stage(
+        incident,
+        "hazard_assessment",
+        "done",
+        "Hazard zone evaluated.",
+    )
 
     # Step 3: Communications
+    await _emit_stage(
+        incident,
+        "communications",
+        "running",
+        "Drafting an alert for nearby citizens.",
+    )
     comms = await run_communications(situation_text, hazard_text, incident)
     results["agent_outputs"]["communications"] = comms
+    await _emit_stage(
+        incident,
+        "communications",
+        "done",
+        "Public alert dispatched to citizens in the geofence.",
+    )
 
     # Step 4: Dispatch + Negotiation (if severity warrants it)
     severity_high = any(
@@ -369,9 +660,21 @@ async def process_incident(incident: dict) -> dict:
     )
 
     if severity_high:
+        await _emit_stage(
+            incident,
+            "dispatch_strategist",
+            "running",
+            "Selecting the best rescue base for your incident.",
+        )
         dispatch = await run_dispatch(situation_text, hazard_text, incident)
         results["agent_outputs"]["dispatch"] = dispatch
         dispatch_text = dispatch.get("result", "")
+        await _emit_stage(
+            incident,
+            "dispatch_strategist",
+            "done",
+            "Candidate base chosen.",
+        )
 
         if "chosen_base" in dispatch_text.lower() or "dispatch" in dispatch_text.lower():
             severity_num = incident.get("severity_hint", 3)
@@ -388,6 +691,13 @@ async def process_incident(incident: dict) -> dict:
             )
 
             await _emit_reasoning("supervisor", f"Mission {mission.mission_id} created. Starting negotiation...")
+            await _emit_stage(
+                incident,
+                "negotiation",
+                "running",
+                "Asking the Field Commander to accept this mission.",
+                {"mission_id": mission.mission_id},
+            )
 
             # Step 5: Negotiation with Field Commanders
             negotiation = await negotiate_mission(dispatch_text, incident, mission)
@@ -395,7 +705,31 @@ async def process_incident(incident: dict) -> dict:
 
             # Step 6: Route Optimization (if a base accepted)
             if negotiation["accepted"]:
-                route = await run_route_optimization(dispatch_text, incident)
+                accepted_base = negotiation.get("base") or {}
+                await _emit_stage(
+                    incident,
+                    "negotiation",
+                    "done",
+                    f"{accepted_base.get('name', 'A nearby base')} accepted the mission.",
+                    {
+                        "mission_id": mission.mission_id,
+                        "base_name": accepted_base.get("name"),
+                        "rounds": negotiation.get("rounds"),
+                    },
+                )
+
+                await _emit_stage(
+                    incident,
+                    "route_optimizer",
+                    "running",
+                    "Computing the safest, fastest route while avoiding hazard zones.",
+                )
+                route = await run_route_optimization(
+                    dispatch_text,
+                    incident,
+                    accepted_base=accepted_base,
+                    mission=mission,
+                )
                 results["agent_outputs"]["route"] = route
 
                 mission.status = MissionStatus.EN_ROUTE
@@ -404,14 +738,67 @@ async def process_incident(incident: dict) -> dict:
                     action="en_route",
                     reasoning="Route computed, team dispatched.",
                 )
+
+                eta_msg = (
+                    f"ETA {mission.route_eta_minutes:.0f} min"
+                    if getattr(mission, "route_eta_minutes", None)
+                    else "Route ready"
+                )
+                await _emit_stage(
+                    incident,
+                    "route_optimizer",
+                    "done",
+                    f"{eta_msg}. Team is en route from {accepted_base.get('name', 'the rescue base')}.",
+                    {
+                        "mission_id": mission.mission_id,
+                        "base_name": accepted_base.get("name"),
+                        "eta_minutes": getattr(mission, "route_eta_minutes", None),
+                        "distance_km": getattr(mission, "route_distance_km", None),
+                    },
+                )
+
+                await _emit_stage(
+                    incident,
+                    "supervisor",
+                    "done",
+                    f"Help is on the way from {accepted_base.get('name', 'a nearby base')}.",
+                    {"outcome": "dispatched", "mission_id": mission.mission_id},
+                )
             else:
                 await _emit_reasoning(
                     "supervisor",
                     f"All bases declined mission {mission.mission_id}. Escalating.",
                 )
+                await _emit_stage(
+                    incident,
+                    "negotiation",
+                    "error",
+                    "All nearby bases are unavailable. Operator has been notified to escalate.",
+                    {"mission_id": mission.mission_id},
+                )
+                await _emit_stage(
+                    incident,
+                    "supervisor",
+                    "error",
+                    "No team could accept the mission immediately — your report has been escalated.",
+                    {"outcome": "escalated"},
+                )
                 mission.status = MissionStatus.CANCELLED
     else:
         await _emit_reasoning("supervisor", "Severity below dispatch threshold. Advisory-only mode.")
+        await _emit_stage(
+            incident,
+            "dispatch_strategist",
+            "skipped",
+            "Severity below dispatch threshold — advisory-only.",
+        )
+        await _emit_stage(
+            incident,
+            "supervisor",
+            "done",
+            "Logged as advisory. Stay alert; call 112 if the situation worsens.",
+            {"outcome": "advisory"},
+        )
 
     await _emit_reasoning("supervisor", "Incident processing complete.")
     return results

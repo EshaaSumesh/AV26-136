@@ -22,29 +22,29 @@ function statusStyle(status: string): StatusStyle {
   switch (status) {
     case "negotiating":
       return {
-        dot: "#E86A10",
-        glow: "0 0 6px #E86A10",
-        pillBg: "rgba(232,106,16,0.15)",
-        pillBorder: "rgba(232,106,16,0.35)",
-        pillText: "#E86A10",
+        dot: "#facc15",
+        glow: "0 0 6px #facc15",
+        pillBg: "rgba(250,204,21,0.15)",
+        pillBorder: "rgba(250,204,21,0.4)",
+        pillText: "#fde68a",
         label: "NEGOTIATING",
       };
     case "accepted":
       return {
-        dot: "#60a5fa",
-        glow: "0 0 6px #60a5fa",
-        pillBg: "rgba(96,165,250,0.15)",
-        pillBorder: "rgba(96,165,250,0.35)",
-        pillText: "#60a5fa",
+        dot: "#6BBD95",
+        glow: "0 0 6px #6BBD95",
+        pillBg: "rgba(107,189,149,0.15)",
+        pillBorder: "rgba(107,189,149,0.4)",
+        pillText: "#6BBD95",
         label: "ACCEPTED",
       };
     case "en_route":
       return {
-        dot: "#E86A10",
-        glow: "0 0 8px #E86A10",
-        pillBg: "rgba(232,106,16,0.15)",
-        pillBorder: "rgba(232,106,16,0.35)",
-        pillText: "#E86A10",
+        dot: "#6BBD95",
+        glow: "0 0 8px #6BBD95",
+        pillBg: "rgba(107,189,149,0.18)",
+        pillBorder: "rgba(107,189,149,0.45)",
+        pillText: "#A6D9BC",
         label: "EN ROUTE",
       };
     case "on_site":
@@ -148,7 +148,7 @@ export default function MissionsPanel({ missions, selected, onSelect }: Props) {
                       }}
                     />
                     <span className="flex-1 truncate text-[12px] text-admin-text">
-                      {m.disaster_type
+                      {m.disaster_type && m.disaster_type.length > 0
                         ? `${m.disaster_type[0].toUpperCase()}${m.disaster_type.slice(1)}`
                         : "Incident"}{" "}
                       —{" "}

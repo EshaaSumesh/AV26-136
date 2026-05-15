@@ -159,10 +159,32 @@ async def _run_pipeline(incident: dict) -> None:
                 type=EventType.AGENT_ERROR,
                 payload={
                     "incident_id": incident["incident_id"],
+                    "citizen_id": incident.get("citizen_id"),
                     "error": error_msg,
                 },
                 source_agent="supervisor",
             ))
+            # Tell the citizen as well
+            citizen_id = incident.get("citizen_id")
+            if citizen_id:
+                try:
+                    from backend.core.ws_manager import get_ws
+
+                    await get_ws().send_citizens(
+                        [citizen_id],
+                        {
+                            "type": "incident.stage",
+                            "data": {
+                                "incident_id": incident["incident_id"],
+                                "citizen_id": citizen_id,
+                                "stage": "supervisor",
+                                "status": "error",
+                                "caption": error_msg,
+                            },
+                        },
+                    )
+                except Exception:  # pragma: no cover
+                    pass
 
 
 def _humanize_error(exc: BaseException) -> str:

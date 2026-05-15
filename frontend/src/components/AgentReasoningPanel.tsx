@@ -45,7 +45,7 @@ const STAGES: StageDef[] = [
     label: "Situation Awareness",
     short: "Situation",
     icon: Eye,
-    color: "#6BBD95",
+    color: "#60a5fa",
     matchAgent: (a) => a === "situation_awareness",
   },
   {
@@ -53,7 +53,7 @@ const STAGES: StageDef[] = [
     label: "Hazard Assessment",
     short: "Hazard",
     icon: Radar,
-    color: "#E86A10",
+    color: "#f59e0b",
     matchAgent: (a) => a === "hazard_assessment",
   },
   {
@@ -203,6 +203,64 @@ function formatDuration(ms: number): string {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
+// ── Per-event flashcard summary (front of card) ────────────────
+
+interface EventSummary {
+  headline: string;
+  detail?: string;
+  kind: "reasoning" | "tool" | "mission" | "error" | "other";
+}
+
+function eventSummary(e: AgentEvent): EventSummary {
+  if (isReasoning(e)) {
+    const thought = String(e.payload?.thought ?? "");
+    return {
+      kind: "reasoning",
+      headline: thought.length > 110 ? thought.slice(0, 107) + "…" : thought,
+      detail: thought,
+    };
+  }
+  if (isToolCall(e)) {
+    const tool = String(e.payload?.tool ?? "tool");
+    const argsPreview = formatArgsPreview(
+      e.payload?.args as Record<string, unknown> | undefined,
+    );
+    return {
+      kind: "tool",
+      headline: `Called ${tool}`,
+      detail: argsPreview,
+    };
+  }
+  if (isMission(e)) {
+    const verb = (e.type.split(".").pop() ?? "mission").replace("_", " ");
+    const base = (e.payload?.base_name as string) ?? "";
+    const commander = (e.payload?.commander as string) ?? "";
+    const reason =
+      (e.payload?.reasoning as string) ??
+      (e.payload?.reason as string) ??
+      "";
+    return {
+      kind: "mission",
+      headline:
+        `Mission ${verb}` +
+        (base ? ` — ${base}` : "") +
+        (commander ? ` · ${commander}` : ""),
+      detail: reason || undefined,
+    };
+  }
+  if (isError(e)) {
+    return {
+      kind: "error",
+      headline: String(e.payload?.error ?? "Error"),
+    };
+  }
+  return {
+    kind: "other",
+    headline: e.type,
+    detail: JSON.stringify(e.payload ?? {}).slice(0, 200),
+  };
+}
+
 // ── Main component ─────────────────────────────────────────────
 
 export default function AgentReasoningPanel({
@@ -240,6 +298,9 @@ export default function AgentReasoningPanel({
 
   const activeStage = stages.find((s) => s.status === "active");
   const completedCount = stages.filter((s) => s.status === "done").length;
+  const activeStageDef = activeStage
+    ? STAGES.find((s) => s.id === activeStage.id)
+    : null;
 
   return (
     <div className="dark-scope flex h-full flex-col overflow-hidden border border-admin-rule bg-onyx">
@@ -274,19 +335,12 @@ export default function AgentReasoningPanel({
 
         <StageTracker stages={stages} />
 
-        {activeStage && (
-          <div className="mt-2.5 flex items-center gap-2 border border-safety-org/30 bg-safety-org/[0.06] px-2.5 py-1.5">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-safety-org opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-safety-org" />
-            </span>
-            <span className="font-mono text-[10px] uppercase tracking-[.12em] text-safety-org">
-              {STAGES.find((s) => s.id === activeStage.id)?.label}
-            </span>
-            <span className="font-mono text-[10px] tracking-[.08em] text-safety-org/70">
-              · reasoning
-            </span>
-          </div>
+        {activeStageDef && (
+          <ActiveAgentBanner
+            color={activeStageDef.color}
+            label={activeStageDef.label}
+            Icon={activeStageDef.icon}
+          />
         )}
       </div>
 
@@ -326,6 +380,47 @@ export default function AgentReasoningPanel({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Active agent banner ───────────────────────────────────────
+
+function ActiveAgentBanner({
+  color,
+  label,
+  Icon,
+}: {
+  color: string;
+  label: string;
+  Icon: typeof Brain;
+}) {
+  return (
+    <div
+      className="mt-2.5 flex items-center gap-2.5 border bg-onyx-2/60 px-2.5 py-1.5"
+      style={{ borderColor: `${color}55` }}
+    >
+      <span className="relative flex h-7 w-7 items-center justify-center">
+        <span
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
+            filter: "blur(6px)",
+            opacity: 0.55,
+            animation: "halo-pulse 2.2s ease-in-out infinite",
+          }}
+        />
+        <Icon className="relative h-3.5 w-3.5" style={{ color }} />
+      </span>
+      <span
+        className="font-mono text-[10px] uppercase tracking-[.12em]"
+        style={{ color }}
+      >
+        {label}
+      </span>
+      <span className="font-mono text-[10px] tracking-[.08em] text-steel-light">
+        · reasoning
+      </span>
     </div>
   );
 }
@@ -381,7 +476,7 @@ function StageTracker({ stages }: { stages: PipelineStage[] }) {
   );
 }
 
-// ── Stage card (collapsible) ──────────────────────────────────
+// ── Stage card (collapsible — body holds glass flashcards) ────
 
 function StageCard({
   stage,
@@ -426,11 +521,7 @@ function StageCard({
       className={`overflow-hidden border-l-[3px] ${accentBorder}`}
       style={{
         borderLeftColor:
-          stage.status === "active"
-            ? def.color
-            : stage.status === "error"
-              ? "#fb7185"
-              : def.color,
+          stage.status === "error" ? "#fb7185" : def.color,
       }}
     >
       <button
@@ -471,12 +562,17 @@ function StageCard({
       </button>
 
       {isOpen && (
-        <div className="border-t border-admin-rule/60 bg-onyx-2/40 px-3 py-2">
-          <ul className="space-y-1.5">
+        <div className="border-t border-admin-rule/60 bg-onyx-2/40 px-3 py-3">
+          <div className="grid grid-cols-1 gap-2">
             {stage.events.map((e) => (
-              <EventLine key={e.id} event={e} accent={def.color} />
+              <Flashcard
+                key={e.id}
+                event={e}
+                color={def.color}
+                isActive={stage.status === "active"}
+              />
             ))}
-          </ul>
+          </div>
         </div>
       )}
     </div>
@@ -526,127 +622,201 @@ function StageStatusPill({ status }: { status: PipelineStage["status"] }) {
   );
 }
 
-// ── Per-event display ──────────────────────────────────────────
+// ── Glass flashcard ────────────────────────────────────────────
 
-function EventLine({ event, accent }: { event: AgentEvent; accent: string }) {
+function Flashcard({
+  event,
+  color,
+  isActive,
+}: {
+  event: AgentEvent;
+  color: string;
+  isActive: boolean;
+}) {
   const [open, setOpen] = useState(false);
+  const summary = eventSummary(event);
   const time = new Date(event.timestamp).toLocaleTimeString("en-IN", {
     hour12: false,
   });
+  const Icon = iconForEvent(event);
+  const kindLabel = kindLabelFor(summary.kind);
+  const isErr = summary.kind === "error";
+  const cardColor = isErr ? "#fb7185" : color;
+  const expandable = Boolean(
+    summary.detail ||
+      isToolCall(event) ||
+      isReasoning(event) ||
+      isMission(event),
+  );
 
-  if (isToolCall(event)) {
-    const tool = (event.payload?.tool as string) ?? "tool";
-    const argsPreview = formatArgsPreview(
-      event.payload?.args as Record<string, unknown> | undefined,
-    );
-    const hasArgs = argsPreview.length > 0;
-    return (
-      <li className="border border-admin-rule/60 bg-white/[0.02]">
-        <button
-          onClick={() => hasArgs && setOpen((v) => !v)}
-          className={
-            "flex w-full items-start gap-2 px-2 py-1.5 text-left " +
-            (hasArgs ? "cursor-pointer hover:bg-white/[0.04]" : "cursor-default")
-          }
+  return (
+    <div
+      className={`glass-card relative overflow-hidden ${open ? "flipping" : ""}`}
+      style={
+        {
+          ["--agent-color" as string]: cardColor,
+        } as React.CSSProperties
+      }
+    >
+      {/* corner halo */}
+      <span
+        className={"glass-halo " + (isActive ? "live" : "")}
+        style={{
+          left: -18,
+          top: -18,
+        }}
+      />
+
+      <button
+        onClick={() => expandable && setOpen((v) => !v)}
+        className={
+          "flex w-full items-start gap-3 px-3 py-2.5 text-left " +
+          (expandable ? "cursor-pointer" : "cursor-default")
+        }
+      >
+        <span
+          className={"glass-icon-ring " + (isActive ? "live" : "")}
+          style={{
+            ["--agent-color" as string]: cardColor,
+          } as React.CSSProperties}
         >
-          <Wrench
-            className="mt-0.5 h-3 w-3 shrink-0"
-            style={{ color: accent }}
-          />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-mono text-[11px] font-semibold text-admin-text">
-                {tool}
-              </span>
-              {hasArgs && (
-                <span className="truncate font-mono text-[10px] text-admin-muted">
-                  ({argsPreview})
-                </span>
-              )}
-            </div>
-          </div>
-          <span className="shrink-0 font-mono text-[9px] uppercase tracking-[.1em] text-steel-light">
-            {time}
-          </span>
-        </button>
-        {open && hasArgs && (
-          <pre className="scroll-thin max-h-40 overflow-auto border-t border-admin-rule/60 bg-onyx-2 p-2 font-mono text-[10px] text-admin-muted">
-            {JSON.stringify(event.payload?.args, null, 2)}
-          </pre>
-        )}
-      </li>
-    );
-  }
+          <Icon className="h-4 w-4" />
+        </span>
 
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span
+              className="font-mono text-[9px] uppercase tracking-[.14em]"
+              style={{ color: cardColor }}
+            >
+              {kindLabel}
+            </span>
+            <span className="font-mono text-[9px] text-steel-light/70">
+              · {event.source_agent ?? "system"}
+            </span>
+            <span className="ml-auto font-mono text-[9px] text-steel-light">
+              {time}
+            </span>
+          </div>
+          <div
+            className={
+              "mt-1 break-words text-[12px] leading-snug " +
+              (isErr ? "text-danger" : "text-admin-text")
+            }
+          >
+            {summary.headline || "—"}
+          </div>
+          {!open && summary.detail && summary.kind === "tool" && (
+            <div className="mt-1 truncate font-mono text-[10px] text-admin-muted">
+              ({summary.detail})
+            </div>
+          )}
+        </div>
+
+        {expandable && (
+          <ChevronDown
+            className={
+              "mt-1.5 h-3 w-3 shrink-0 text-steel-light transition " +
+              (open ? "rotate-180" : "")
+            }
+          />
+        )}
+      </button>
+
+      {open && expandable && (
+        <div className="border-t border-white/5 bg-onyx/60 px-3 py-2">
+          <FlashcardBack event={event} color={cardColor} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FlashcardBack({
+  event,
+  color,
+}: {
+  event: AgentEvent;
+  color: string;
+}) {
   if (isReasoning(event)) {
     const thought = String(event.payload?.thought ?? "");
     return (
-      <li className="flex items-start gap-2 border border-admin-rule/60 bg-white/[0.02] px-2 py-1.5">
-        <Brain
-          className="mt-0.5 h-3 w-3 shrink-0"
-          style={{ color: accent }}
-        />
-        <div className="min-w-0 flex-1 whitespace-pre-wrap break-words text-[11px] leading-relaxed text-admin-text">
-          {thought}
+      <div>
+        <div
+          className="mb-1.5 font-mono text-[9px] uppercase tracking-[.14em]"
+          style={{ color }}
+        >
+          Full reasoning
         </div>
-        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[.1em] text-steel-light">
-          {time}
-        </span>
-      </li>
-    );
-  }
-
-  if (isMission(event)) {
-    const verb = event.type.split(".").pop()?.toUpperCase() ?? "MISSION";
-    const base = (event.payload?.base_name as string) ?? "";
-    const commander = (event.payload?.commander as string) ?? "";
-    return (
-      <li className="flex items-start gap-2 border border-admin-rule/60 bg-white/[0.02] px-2 py-1.5">
-        <Truck
-          className="mt-0.5 h-3 w-3 shrink-0"
-          style={{ color: accent }}
-        />
-        <div className="min-w-0 flex-1 text-[11px]">
-          <span className="font-mono font-semibold uppercase tracking-[.08em] text-admin-text">
-            {verb}
-          </span>
-          {base && <span className="ml-1 text-admin-text">{base}</span>}
-          {commander && (
-            <span className="ml-1 text-steel-light">· {commander}</span>
-          )}
-        </div>
-        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[.1em] text-steel-light">
-          {time}
-        </span>
-      </li>
-    );
-  }
-
-  if (isError(event)) {
-    return (
-      <li className="flex items-start gap-2 border border-danger/40 bg-danger/10 px-2 py-1.5 text-[11px] text-danger">
-        <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-        <div className="min-w-0 flex-1 break-words">
-          {String(event.payload?.error ?? "error")}
-        </div>
-        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[.1em] text-danger/70">
-          {time}
-        </span>
-      </li>
-    );
-  }
-
-  return (
-    <li className="flex items-start gap-2 border border-admin-rule/60 bg-white/[0.02] px-2 py-1.5 text-[11px] text-admin-muted">
-      <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-steel-light" />
-      <div className="min-w-0 flex-1 truncate">
-        {event.type} · {JSON.stringify(event.payload).slice(0, 80)}
+        <p className="whitespace-pre-wrap break-words text-[11px] leading-relaxed text-admin-text">
+          {thought || "—"}
+        </p>
       </div>
-      <span className="shrink-0 font-mono text-[9px] uppercase tracking-[.1em] text-steel-light">
-        {time}
-      </span>
-    </li>
+    );
+  }
+  if (isToolCall(event)) {
+    return (
+      <div>
+        <div
+          className="mb-1.5 font-mono text-[9px] uppercase tracking-[.14em]"
+          style={{ color }}
+        >
+          Tool arguments
+        </div>
+        <pre className="scroll-thin max-h-48 overflow-auto whitespace-pre-wrap break-words bg-onyx-2/60 p-2 font-mono text-[10px] text-admin-muted">
+          {JSON.stringify(event.payload?.args ?? {}, null, 2)}
+        </pre>
+      </div>
+    );
+  }
+  if (isMission(event)) {
+    return (
+      <div>
+        <div
+          className="mb-1.5 font-mono text-[9px] uppercase tracking-[.14em]"
+          style={{ color }}
+        >
+          Mission payload
+        </div>
+        <pre className="scroll-thin max-h-48 overflow-auto whitespace-pre-wrap break-words bg-onyx-2/60 p-2 font-mono text-[10px] text-admin-muted">
+          {JSON.stringify(event.payload ?? {}, null, 2)}
+        </pre>
+      </div>
+    );
+  }
+  return (
+    <div className="text-[11px] text-admin-muted">
+      {JSON.stringify(event.payload ?? {})}
+    </div>
   );
+}
+
+function iconForEvent(e: AgentEvent): typeof Brain {
+  if (isError(e)) return AlertTriangle;
+  if (isToolCall(e)) return Wrench;
+  if (isMission(e)) return Truck;
+  if (isReasoning(e)) {
+    const sid = stageForAgent(e.source_agent);
+    if (sid) return STAGES.find((s) => s.id === sid)!.icon;
+    return Brain;
+  }
+  return Brain;
+}
+
+function kindLabelFor(kind: EventSummary["kind"]): string {
+  switch (kind) {
+    case "reasoning":
+      return "Thought";
+    case "tool":
+      return "Tool call";
+    case "mission":
+      return "Mission";
+    case "error":
+      return "Error";
+    default:
+      return "Event";
+  }
 }
 
 // ── Errors + supervisor events ─────────────────────────────────
@@ -661,16 +831,11 @@ function ErrorSection({ errors }: { errors: AgentEvent[] }) {
           {errors.length}
         </span>
       </div>
-      <ul className="mt-2 space-y-1">
+      <div className="mt-2 space-y-2">
         {errors.slice(0, 4).map((e) => (
-          <li
-            key={e.id}
-            className="bg-danger/10 px-2 py-1 text-[11px] text-danger"
-          >
-            {String(e.payload?.error ?? "unknown error")}
-          </li>
+          <Flashcard key={e.id} event={e} color="#fb7185" isActive={false} />
         ))}
-      </ul>
+      </div>
     </div>
   );
 }
@@ -682,26 +847,11 @@ function UnstagedSection({ events }: { events: AgentEvent[] }) {
       <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[.12em] text-steel-light hover:text-admin-text">
         Supervisor &amp; system events ({events.length})
       </summary>
-      <ul className="mt-2 space-y-1">
+      <div className="mt-2 space-y-2">
         {events.slice(0, 8).map((e) => (
-          <li
-            key={e.id}
-            className="flex items-center gap-2 bg-white/[0.02] px-2 py-1 text-[10px] text-admin-muted"
-          >
-            <span className="font-mono font-medium text-admin-text">
-              {e.source_agent ?? "system"}
-            </span>
-            <span className="truncate text-steel-light">
-              {String(e.payload?.thought ?? e.type)}
-            </span>
-            <span className="ml-auto shrink-0 font-mono text-[9px] uppercase tracking-[.08em] text-steel-light/70">
-              {new Date(e.timestamp).toLocaleTimeString("en-IN", {
-                hour12: false,
-              })}
-            </span>
-          </li>
+          <Flashcard key={e.id} event={e} color="#94a3b8" isActive={false} />
         ))}
-      </ul>
+      </div>
     </details>
   );
 }

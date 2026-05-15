@@ -28,19 +28,24 @@
   --safe-green:  #166534;
   --safe-pale:   #DCFCE7;
 
-  /* Field Operations — authority */
-  --onyx:        #1C2128;
-  --onyx-2:      #111417;
-  --slate:       #2D3748;
-  --steel:       #4A5568;
-  --steel-light: #718096;
-  --admin-text:  #E2E8F0;
-  --admin-muted: #A0AEC0;
-  --admin-rule:  #374151;
-  --safety-org:  #E86A10;
-  --org-pale:    rgba(232, 106, 16, 0.15);
-  --danger:      #D32F2F;
-  --cleared:     #2E7D32;
+  /* Field Operations — authority
+     Green-family dark scope (forest-tinted onyx, mint accents),
+     uniform with the citizen / landing palette. Variable NAMES are
+     kept stable so existing Tailwind utilities (text-safety-org,
+     bg-onyx, etc.) automatically pick up the new hues. */
+  --onyx:        #0F1A14;   /* deep forest-tinted charcoal */
+  --onyx-2:      #0A1410;   /* even deeper for cards/headers */
+  --slate:       #1B2A22;   /* tabs / subtle surfaces */
+  --steel:       #355040;   /* rules / borders mid */
+  --steel-light: #7E9989;   /* secondary text */
+  --admin-text:  #E5EFE9;   /* primary text on dark green */
+  --admin-muted: #A9C2B5;   /* secondary text */
+  --admin-rule:  #234034;   /* hairlines */
+  --safety-org:  #6BBD95;   /* PRIMARY ACCENT — light-green
+                                (replaces the orange "safety-org") */
+  --org-pale:    rgba(107, 189, 149, 0.15);
+  --danger:      #E25A5A;   /* emergency red, slightly warmer */
+  --cleared:     #2E8B63;   /* mid-green (success) */
 
   /* Fonts */
   --font-serif:  "Noto Serif", Georgia, serif;
@@ -129,21 +134,21 @@ body {
 .live-pulse {
   animation: live-pulse 1.8s ease infinite;
 }
+/* ".live-pulse-orange" is kept under the same class name for backwards
+   compatibility (used by topbar LIVE indicator etc.) but now pulses in
+   the command-centre green so it aligns with the rest of the palette. */
 .live-pulse-orange {
-  animation: live-pulse 1.5s ease infinite;
-  box-shadow: 0 0 0 0 rgba(232, 106, 16, 0.55);
+  animation: live-pulse-org 1.5s ease infinite;
+  box-shadow: 0 0 0 0 rgba(107, 189, 149, 0.55);
 }
-.live-pulse-orange {
-  animation-name: live-pulse-orange;
-}
-@keyframes live-pulse-orange {
+@keyframes live-pulse-org {
   0%, 100% {
     opacity: 1;
-    box-shadow: 0 0 0 0 rgba(232, 106, 16, 0.55);
+    box-shadow: 0 0 0 0 rgba(107, 189, 149, 0.55);
   }
   50% {
     opacity: 0.7;
-    box-shadow: 0 0 0 6px rgba(232, 106, 16, 0);
+    box-shadow: 0 0 0 6px rgba(107, 189, 149, 0);
   }
 }
 
@@ -245,4 +250,75 @@ body {
 .reveal.visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* ═══════════════════════════════
+   Glass flashcards (agent reasoning)
+═══════════════════════════════ */
+
+.glass-card {
+  position: relative;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 60%, rgba(0,0,0,0.15) 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.glass-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.04) 35%, transparent 70%);
+  pointer-events: none;
+}
+.glass-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,0.16);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+}
+.glass-card.flipping {
+  box-shadow: 0 0 0 1px var(--agent-color, #6BBD95), 0 0 24px -4px var(--agent-color, #6BBD95);
+}
+
+.glass-halo {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, var(--agent-color, #6BBD95) 0%, transparent 70%);
+  opacity: 0.35;
+  filter: blur(10px);
+  pointer-events: none;
+}
+.glass-halo.live { animation: halo-pulse 2.2s ease-in-out infinite; }
+@keyframes halo-pulse {
+  0%, 100% { opacity: 0.32; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(1.15); }
+}
+
+.glass-icon-ring {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--agent-color, rgba(255,255,255,0.18));
+  color: var(--agent-color, #6BBD95);
+  flex-shrink: 0;
+}
+.glass-icon-ring.live::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px solid var(--agent-color, #6BBD95);
+  animation: glass-ring 1.6s ease-out infinite;
+}
+@keyframes glass-ring {
+  0%   { transform: scale(1);   opacity: 0.85; }
+  100% { transform: scale(1.6); opacity: 0;    }
 }

@@ -7,17 +7,31 @@ import {
   ArrowLeft,
   BarChart3,
   Brain,
-  Hexagon,
+  Building2,
+  Database,
+  FileText,
+  History,
+  Map as MapIcon,
   RefreshCw,
+  Settings as SettingsIcon,
+  ShieldAlert,
+  Truck,
 } from "lucide-react";
 
 import { api } from "@/lib/api";
 import type { AgentEvent, HazardZone, Mission } from "@/lib/types";
 import { useAuthorityWS } from "@/lib/useAuthorityWS";
 import AgentReasoningPanel from "@/components/AgentReasoningPanel";
+import AgentCrewPanel from "@/components/AgentCrewPanel";
 import MissionsPanel from "@/components/MissionsPanel";
 import MetricsPanel from "@/components/MetricsPanel";
 import DemoLauncher from "@/components/DemoLauncher";
+import HazardsView from "@/components/views/HazardsView";
+import DataFeedsView from "@/components/views/DataFeedsView";
+import RouteHistoryView from "@/components/views/RouteHistoryView";
+import ResourcesView from "@/components/views/ResourcesView";
+import ReportsView from "@/components/views/ReportsView";
+import SettingsView from "@/components/views/SettingsView";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
@@ -26,6 +40,61 @@ interface DashboardStats {
   missions?: { total?: number; active?: number; en_route?: number };
 }
 
+type ViewId =
+  | "live_map"
+  | "missions"
+  | "reasoning"
+  | "hazards"
+  | "feeds"
+  | "history"
+  | "resources"
+  | "reports"
+  | "settings";
+
+interface NavItem {
+  id: ViewId;
+  label: string;
+  icon: typeof MapIcon;
+  section: "Operations" | "Intelligence" | "Admin";
+}
+
+const NAV: NavItem[] = [
+  { id: "live_map", label: "Live Map", icon: MapIcon, section: "Operations" },
+  { id: "missions", label: "Missions", icon: Truck, section: "Operations" },
+  {
+    id: "reasoning",
+    label: "Agent Reasoning",
+    icon: Brain,
+    section: "Operations",
+  },
+  {
+    id: "hazards",
+    label: "Hazard Zones",
+    icon: ShieldAlert,
+    section: "Intelligence",
+  },
+  { id: "feeds", label: "Data Feeds", icon: Database, section: "Intelligence" },
+  {
+    id: "history",
+    label: "Route History",
+    icon: History,
+    section: "Intelligence",
+  },
+  {
+    id: "resources",
+    label: "Resources",
+    icon: Building2,
+    section: "Admin",
+  },
+  { id: "reports", label: "Reports", icon: FileText, section: "Admin" },
+  {
+    id: "settings",
+    label: "Settings",
+    icon: SettingsIcon,
+    section: "Admin",
+  },
+];
+
 export default function AuthorityPage() {
   const { connected, events: liveEvents } = useAuthorityWS();
   const [seedEvents, setSeedEvents] = useState<AgentEvent[]>([]);
@@ -33,7 +102,10 @@ export default function AuthorityPage() {
   const [hazards, setHazards] = useState<HazardZone[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [rightTab, setRightTab] = useState<"reasoning" | "metrics">("reasoning");
+  const [view, setView] = useState<ViewId>("live_map");
+  const [rightTab, setRightTab] = useState<"reasoning" | "metrics">(
+    "reasoning",
+  );
   const [clock, setClock] = useState<string>("");
 
   async function refresh() {
@@ -75,7 +147,6 @@ export default function AuthorityPage() {
     });
   }, [liveEvents, seedEvents]);
 
-  // ── Derived stats for the top row ──
   const activeMissions = missions.filter((m) =>
     ["negotiating", "accepted", "en_route", "on_site"].includes(m.status),
   );
@@ -116,9 +187,15 @@ export default function AuthorityPage() {
     return `${avg.toFixed(0)}m`;
   })();
 
+  const sections: Array<NavItem["section"]> = [
+    "Operations",
+    "Intelligence",
+    "Admin",
+  ];
+
   return (
     <main className="dark-scope flex h-screen flex-col overflow-hidden bg-onyx text-admin-text">
-      {/* ══ TOPBAR ══════════════════════════════════════════════ */}
+      {/* TOPBAR */}
       <header className="flex items-center gap-4 border-b border-admin-rule bg-onyx-2 px-5 py-2.5">
         <Link
           href="/"
@@ -164,23 +241,31 @@ export default function AuthorityPage() {
         </div>
       </header>
 
-      {/* ══ BODY (sidebar + content) ═══════════════════════════ */}
+      {/* BODY */}
       <div className="grid flex-1 overflow-hidden md:grid-cols-[200px_1fr]">
-        {/* ─── SIDEBAR ─── */}
+        {/* SIDEBAR */}
         <aside className="hidden border-r border-admin-rule bg-[#141a21] py-4 md:flex md:flex-col">
-          <SidebarSection label="Operations" />
-          <SidebarItem label="Live Map" active />
-          <SidebarItem label="Missions" badge={activeMissions.length} />
-          <SidebarItem label="Agent Reasoning" />
-          <SidebarSection label="Intelligence" />
-          <SidebarItem label="Hazard Zones" />
-          <SidebarItem label="Data Feeds" />
-          <SidebarItem label="Route History" />
-          <SidebarSection label="Admin" />
-          <SidebarItem label="Resources" />
-          <SidebarItem label="Reports" />
-          <SidebarItem label="Settings" />
-
+          {sections.map((sec) => (
+            <div key={sec}>
+              <SidebarSection label={sec} />
+              {NAV.filter((n) => n.section === sec).map((item) => (
+                <SidebarItem
+                  key={item.id}
+                  item={item}
+                  active={view === item.id}
+                  badge={
+                    item.id === "missions" ? activeMissions.length : undefined
+                  }
+                  alertBadge={
+                    item.id === "hazards" && hazards.length > 0
+                      ? hazards.length
+                      : undefined
+                  }
+                  onClick={() => setView(item.id)}
+                />
+              ))}
+            </div>
+          ))}
           <div className="mt-auto border-t border-admin-rule px-4 pt-3">
             <div className="font-mono text-[9px] uppercase tracking-[.14em] text-steel-light">
               Operator
@@ -191,9 +276,9 @@ export default function AuthorityPage() {
           </div>
         </aside>
 
-        {/* ─── CONTENT ─── */}
+        {/* CONTENT */}
         <div className="flex flex-col overflow-hidden">
-          {/* Stat row */}
+          {/* Stat row — always visible */}
           <div className="grid grid-cols-2 gap-2 border-b border-admin-rule bg-onyx p-3 md:grid-cols-4">
             <StatCard
               label="Active Missions"
@@ -234,60 +319,35 @@ export default function AuthorityPage() {
             />
           </div>
 
-          {/* Map + right column */}
-          <div className="grid flex-1 overflow-hidden md:grid-cols-[1fr_360px_360px]">
-            {/* MAP */}
-            <div className="relative">
-              <MapView
+          <div className="flex-1 overflow-hidden">
+            {view === "live_map" && (
+              <LiveMapView
                 hazards={hazards}
                 missions={missions}
-                selectedMission={selected}
+                selected={selected}
+                onSelect={setSelected}
+                allEvents={allEvents}
+                rightTab={rightTab}
+                onRightTabChange={setRightTab}
               />
-              <div className="pointer-events-none absolute left-3 top-3 space-y-2">
-                <Legend />
-              </div>
-              <div className="pointer-events-none absolute right-3 top-3 inline-flex items-center gap-1.5 border border-admin-rule bg-onyx/80 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[.1em] text-steel-light backdrop-blur">
-                <span className="h-1.5 w-1.5 rounded-full bg-safety-org live-pulse-orange" />
-                Mapbox · Live Operations
-              </div>
-            </div>
-
-            {/* MIDDLE — Demo + Missions */}
-            <div className="flex flex-col gap-3 overflow-hidden border-l border-admin-rule p-3">
-              <DemoLauncher />
-              <div className="min-h-0 flex-1">
-                <MissionsPanel
-                  missions={missions}
-                  selected={selected}
-                  onSelect={setSelected}
-                />
-              </div>
-            </div>
-
-            {/* RIGHT — Reasoning / Metrics */}
-            <div className="flex flex-col overflow-hidden border-l border-admin-rule p-3">
-              <div className="mb-2 flex border border-admin-rule bg-slate">
-                <TabButton
-                  active={rightTab === "reasoning"}
-                  onClick={() => setRightTab("reasoning")}
-                  icon={<Brain className="h-3 w-3" />}
-                  label="Reasoning"
-                />
-                <TabButton
-                  active={rightTab === "metrics"}
-                  onClick={() => setRightTab("metrics")}
-                  icon={<BarChart3 className="h-3 w-3" />}
-                  label="Metrics"
-                />
-              </div>
-              <div className="min-h-0 flex-1">
-                {rightTab === "reasoning" ? (
-                  <AgentReasoningPanel events={allEvents} />
-                ) : (
-                  <MetricsPanel />
-                )}
-              </div>
-            </div>
+            )}
+            {view === "missions" && (
+              <MissionsFullView
+                missions={missions}
+                selected={selected}
+                onSelect={setSelected}
+                hazards={hazards}
+              />
+            )}
+            {view === "reasoning" && (
+              <ReasoningFullView events={allEvents} />
+            )}
+            {view === "hazards" && <HazardsView hazards={hazards} />}
+            {view === "feeds" && <DataFeedsView />}
+            {view === "history" && <RouteHistoryView />}
+            {view === "resources" && <ResourcesView />}
+            {view === "reports" && <ReportsView />}
+            {view === "settings" && <SettingsView />}
           </div>
         </div>
       </div>
@@ -295,7 +355,129 @@ export default function AuthorityPage() {
   );
 }
 
-// ══ Subcomponents ═══════════════════════════════════════════════
+// ── Live map composite (the original triple-pane) ─────────────
+
+function LiveMapView({
+  hazards,
+  missions,
+  selected,
+  onSelect,
+  allEvents,
+  rightTab,
+  onRightTabChange,
+}: {
+  hazards: HazardZone[];
+  missions: Mission[];
+  selected: string | null;
+  onSelect: (id: string | null) => void;
+  allEvents: AgentEvent[];
+  rightTab: "reasoning" | "metrics";
+  onRightTabChange: (t: "reasoning" | "metrics") => void;
+}) {
+  return (
+    <div className="grid h-full overflow-hidden md:grid-cols-[1fr_360px_360px]">
+      <div className="relative">
+        <MapView
+          hazards={hazards}
+          missions={missions}
+          selectedMission={selected}
+        />
+        <div className="pointer-events-none absolute left-3 top-3 space-y-2">
+          <Legend />
+        </div>
+        <div className="pointer-events-none absolute right-3 top-3 inline-flex items-center gap-1.5 border border-admin-rule bg-onyx/80 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[.1em] text-steel-light backdrop-blur">
+          <span className="h-1.5 w-1.5 rounded-full bg-safety-org live-pulse-orange" />
+          Mapbox · Live Operations
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 overflow-hidden border-l border-admin-rule p-3">
+        <DemoLauncher />
+        <div className="min-h-0 flex-1">
+          <MissionsPanel
+            missions={missions}
+            selected={selected}
+            onSelect={onSelect}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col overflow-hidden border-l border-admin-rule p-3">
+        <div className="mb-2 flex border border-admin-rule bg-slate">
+          <TabButton
+            active={rightTab === "reasoning"}
+            onClick={() => onRightTabChange("reasoning")}
+            icon={<Brain className="h-3 w-3" />}
+            label="Crew"
+          />
+          <TabButton
+            active={rightTab === "metrics"}
+            onClick={() => onRightTabChange("metrics")}
+            icon={<BarChart3 className="h-3 w-3" />}
+            label="Metrics"
+          />
+        </div>
+        <div className="relative min-h-0 flex-1">
+          {rightTab === "reasoning" ? (
+            <AgentCrewPanel events={allEvents} />
+          ) : (
+            <MetricsPanel />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Missions full view (wide list + map) ─────────────────────
+
+function MissionsFullView({
+  missions,
+  selected,
+  onSelect,
+  hazards,
+}: {
+  missions: Mission[];
+  selected: string | null;
+  onSelect: (id: string | null) => void;
+  hazards: HazardZone[];
+}) {
+  return (
+    <div className="grid h-full overflow-hidden md:grid-cols-[1fr_460px]">
+      <div className="relative">
+        <MapView
+          hazards={hazards}
+          missions={missions}
+          selectedMission={selected}
+        />
+      </div>
+      <div className="flex flex-col overflow-hidden border-l border-admin-rule p-3">
+        <MissionsPanel
+          missions={missions}
+          selected={selected}
+          onSelect={onSelect}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── Agent reasoning full view ────────────────────────────────
+
+function ReasoningFullView({ events }: { events: AgentEvent[] }) {
+  return (
+    <div className="grid h-full overflow-hidden md:grid-cols-[1fr_360px]">
+      <div className="overflow-hidden p-3">
+        <AgentReasoningPanel events={events} />
+      </div>
+      <div className="overflow-hidden border-l border-admin-rule p-3">
+        <MetricsPanel />
+      </div>
+    </div>
+  );
+}
+
+// ── Subcomponents ────────────────────────────────────────────
 
 function SidebarSection({ label }: { label: string }) {
   return (
@@ -306,31 +488,41 @@ function SidebarSection({ label }: { label: string }) {
 }
 
 function SidebarItem({
-  label,
+  item,
   active,
   badge,
+  alertBadge,
+  onClick,
 }: {
-  label: string;
-  active?: boolean;
+  item: NavItem;
+  active: boolean;
   badge?: number;
+  alertBadge?: number;
+  onClick: () => void;
 }) {
+  const Icon = item.icon;
   return (
-    <div
+    <button
+      onClick={onClick}
       className={
-        "flex cursor-default items-center gap-2.5 border-l-2 px-4 py-2 text-[12px] tracking-wide transition " +
+        "flex w-full items-center gap-2.5 border-l-2 px-4 py-2 text-left text-[12px] tracking-wide transition " +
         (active
           ? "border-safety-org bg-safety-org/15 font-medium text-safety-org"
           : "border-transparent text-steel-light hover:bg-white/[0.03] hover:text-admin-text")
       }
     >
-      <Hexagon className="h-3 w-3" />
-      <span className="flex-1">{label}</span>
+      <Icon className="h-3 w-3" />
+      <span className="flex-1">{item.label}</span>
       {badge ? (
         <span className="rounded-full bg-danger px-1.5 py-px font-mono text-[9px] text-white">
           {badge}
         </span>
+      ) : alertBadge ? (
+        <span className="rounded-full bg-safety-org px-1.5 py-px font-mono text-[9px] text-onyx">
+          {alertBadge}
+        </span>
       ) : null}
-    </div>
+    </button>
   );
 }
 

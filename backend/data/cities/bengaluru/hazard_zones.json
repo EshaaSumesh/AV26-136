@@ -14,5 +14,101 @@
     "severity": "critical",
     "blocked": true,
     "color": "#ff0000"
+  },
+  {
+    "id": "hz_56121821",
+    "type": "flood",
+    "label": "Severe flooding on 80 Feet Road near Koramangala 4th Block",
+    "geometry": {
+      "type": "circle",
+      "center": [
+        12.9352,
+        77.6245
+      ],
+      "radius_km": 2.0
+    },
+    "severity": "high",
+    "blocked": true,
+    "color": "#ff4444"
+  },
+  {
+    "id": "hz_71c470af",
+    "type": "flood",
+    "label": "Citizen reported flood with knee-deep water and stranded people at Sony World Junction Koramangala",
+    "geometry": {
+      "type": "circle",
+      "center": [
+        12.9343,
+        77.6195
+      ],
+      "radius_km": 1.5
+    },
+    "severity": "high",
+    "blocked": true,
+    "color": "#ff4444"
+  },
+  {
+    "id": "hz_84595a6a",
+    "type": "building_collapse",
+    "label": "Medical emergency: shattered skylight, injured person. Potential structural hazard.",
+    "geometry": {
+      "type": "circle",
+      "center": [
+        12.9719,
+        77.6412
+      ],
+      "radius_km": 0.2
+    },
+    "severity": "critical",
+    "blocked": true,
+    "color": "#ff0000"
+  },
+  {
+    "id": "hz_51074dd9",
+    "type": "road_block",
+    "label": "Multi-car accident and road blockage on Bellandur flyover",
+    "geometry": {
+      "type": "circle",
+      "center": [
+        12.9569,
+        77.7011
+      ],
+      "radius_km": 0.2
+    },
+    "severity": "critical",
+    "blocked": true,
+    "color": "#ff0000"
+  },
+  {
+    "id": "hz_4ed524b2",
+    "type": "road_block",
+    "label": "Tree fall blocking 30th Cross, Jayanagar 4th block, with downed power lines.",
+    "geometry": {
+      "type": "circle",
+      "center": [
+        12.9241,
+        77.5829
+      ],
+      "radius_km": 0.2
+    },
+    "severity": "high",
+    "blocked": true,
+    "color": "#ff4444"
+  },
+  {
+    "id": "hz_ac185a19",
+    "type": "flood",
+    "label": "School bus stuck in flood water near Kaikondrahalli lake junction",
+    "geometry": {
+      "type": "circle",
+      "center": [
+        12.9145,
+        77.6855
+      ],
+      "radius_km": 1.5
+    },
+    "severity": "critical",
+    "blocked": true,
+    "color": "#ff0000"
   }
 ]

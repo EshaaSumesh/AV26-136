@@ -85,6 +85,34 @@ async def lifespan(app: FastAPI):
 
     bus.add_broadcaster(_citizen_dispatch)
 
+    # Forward incident-tagged agent events to the citizen who owns that
+    # incident, so the citizen page can render full per-stage reasoning.
+    _PER_INCIDENT_TYPES = {
+        EventType.AGENT_REASONING,
+        EventType.AGENT_TOOL_CALL,
+        EventType.AGENT_ERROR,
+        EventType.MISSION_PROPOSED,
+        EventType.MISSION_ACCEPTED,
+        EventType.MISSION_DECLINED,
+        EventType.MISSION_COUNTER_PROPOSED,
+        EventType.MISSION_COMPLETED,
+        EventType.ROUTE_COMPUTED,
+    }
+
+    async def _citizen_incident_stream(event: Event) -> None:
+        if event.type not in _PER_INCIDENT_TYPES:
+            return
+        citizen_id = event.payload.get("citizen_id")
+        incident_id = event.payload.get("incident_id")
+        if not citizen_id or not incident_id:
+            return
+        await ws.send_citizens(
+            [citizen_id],
+            {"type": "incident.agent_event", "data": event.to_dict()},
+        )
+
+    bus.add_broadcaster(_citizen_incident_stream)
+
     yield
 
     from backend.agents.reeval_loop import stop_reeval_loop

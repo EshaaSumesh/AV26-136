@@ -25,6 +25,10 @@ import { api, CITY_CENTER } from "@/lib/api";
 import type { CitizenHistory, HazardZone } from "@/lib/types";
 import { DISASTER_TYPES } from "@/lib/types";
 import { useCitizenWS } from "@/lib/useAuthorityWS";
+import {
+  IncidentTracker,
+  buildIncidents,
+} from "@/components/IncidentTracker";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
@@ -78,8 +82,32 @@ export default function CitizenPage() {
     size_bytes: number;
   } | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [trackedIncidentIds, setTrackedIncidentIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { connected, alerts: liveAlerts } = useCitizenWS(citizenId);
+  const {
+    connected,
+    alerts: liveAlerts,
+    stageUpdates,
+    agentEvents,
+  } = useCitizenWS(citizenId);
+
+  const incidents = useMemo(
+    () => buildIncidents(stageUpdates, trackedIncidentIds),
+    [stageUpdates, trackedIncidentIds],
+  );
+
+  const eventsByIncident = useMemo(() => {
+    const map = new Map<string, typeof agentEvents>();
+    for (const e of agentEvents) {
+      const id = (e.payload as { incident_id?: string } | undefined)
+        ?.incident_id;
+      if (!id) continue;
+      const list = map.get(id) ?? [];
+      list.push(e);
+      map.set(id, list);
+    }
+    return map;
+  }, [agentEvents]);
 
   useEffect(() => {
     setCitizenId(ensureCitizenId());
@@ -186,6 +214,11 @@ export default function CitizenPage() {
         setDescription("");
         clearPendingImage();
         refreshHistory();
+        if (res.incident_id) {
+          setTrackedIncidentIds((prev) =>
+            prev.includes(res.incident_id!) ? prev : [...prev, res.incident_id!],
+          );
+        }
       }
     } catch {
       setSubmitTone("err");
@@ -212,6 +245,11 @@ export default function CitizenPage() {
         setDescription("");
         clearPendingImage();
         refreshHistory();
+        if (res.incident_id) {
+          setTrackedIncidentIds((prev) =>
+            prev.includes(res.incident_id!) ? prev : [...prev, res.incident_id!],
+          );
+        }
       }
     } catch {
       setSubmitTone("err");
@@ -452,6 +490,18 @@ export default function CitizenPage() {
               )}
             </div>
           </Card>
+
+          {incidents.length > 0 && (
+            <div className="space-y-3">
+              {incidents.slice(0, 3).map((inc) => (
+                <IncidentTracker
+                  key={inc.incidentId}
+                  incident={inc}
+                  events={eventsByIncident.get(inc.incidentId) ?? []}
+                />
+              ))}
+            </div>
+          )}
 
           <CitizenHistorySection history={history} />
 
