@@ -495,7 +495,7 @@ function StageCard({
 
   if (isInactive) {
     return (
-      <div className="border border-admin-rule/60 bg-white/[0.015] px-3 py-2 opacity-60">
+      <div className="border border-admin-rule bg-onyx-2 px-3 py-2 opacity-60">
         <div className="flex items-center gap-2">
           <Icon className="h-3.5 w-3.5 text-steel-light/60" />
           <span className="font-mono text-[10px] uppercase tracking-[.12em] text-steel-light">
@@ -514,7 +514,7 @@ function StageCard({
       ? "border-danger/40 bg-danger/[0.06]"
       : stage.status === "active"
         ? "border-safety-org/30 bg-safety-org/[0.04]"
-        : "border-admin-rule bg-white/[0.02]";
+        : "border-admin-rule bg-onyx-2";
 
   return (
     <div
@@ -526,7 +526,7 @@ function StageCard({
     >
       <button
         onClick={onToggle}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left transition hover:bg-white/[0.02]"
+        className="flex w-full items-center gap-2 px-3 py-2 text-left transition hover:bg-slate"
       >
         {isOpen ? (
           <ChevronDown className="h-3 w-3 text-steel-light" />
@@ -601,7 +601,7 @@ function StageStatusPill({ status }: { status: PipelineStage["status"] }) {
     },
     pending: {
       label: "pending",
-      cls: "border-admin-rule bg-white/[0.02] text-steel-light",
+      cls: "border-admin-rule bg-onyx text-admin-muted",
       icon: Clock,
     },
   };
@@ -843,7 +843,7 @@ function ErrorSection({ errors }: { errors: AgentEvent[] }) {
 function UnstagedSection({ events }: { events: AgentEvent[] }) {
   if (events.length === 0) return null;
   return (
-    <details className="border border-admin-rule/60 bg-white/[0.02] px-3 py-1.5">
+    <details className="border border-admin-rule bg-onyx-2 px-3 py-1.5">
       <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[.12em] text-steel-light hover:text-admin-text">
         Supervisor &amp; system events ({events.length})
       </summary>
@@ -868,7 +868,7 @@ function RawTimeline({ events }: { events: AgentEvent[] }) {
         return (
           <li
             key={e.id}
-            className="border border-admin-rule/60 bg-white/[0.025] p-2"
+            className="border border-admin-rule bg-onyx-2 p-2"
           >
             <div className="flex items-center justify-between font-mono text-[9px] uppercase tracking-[.12em] text-steel-light">
               <span className="font-medium" style={{ color }}>

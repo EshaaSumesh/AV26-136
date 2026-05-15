@@ -14,31 +14,32 @@
  * AgentReasoningPanel rendered, but on demand).
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Brain,
-  CheckCircle2,
   ChevronDown,
   Clock,
   Crown,
   Eye,
-  Handshake,
   MapPin,
   Megaphone,
   Radar as RadarIcon,
   Search,
+  Sparkles,
   Wrench,
   X,
 } from "lucide-react";
 
 import type { AgentEvent } from "@/lib/types";
+import type { SocialSignal } from "@/lib/useAuthorityWS";
 
 // ── Agent registry ─────────────────────────────────────────────
 
 type AgentId =
   | "supervisor"
   | "situation_awareness"
+  | "social_media_intel"
   | "hazard_assessment"
   | "dispatch_strategist"
   | "route_optimizer"
@@ -75,6 +76,16 @@ const AGENTS: AgentDef[] = [
     Icon: Eye,
     color: "#60a5fa",
     matchAgent: (a) => a === "situation_awareness",
+    isPipelineStage: true,
+  },
+  {
+    id: "social_media_intel",
+    name: "Social Intel",
+    short: "Social",
+    role: "Scores public chatter",
+    Icon: Sparkles,
+    color: "#5eead4",
+    matchAgent: (a) => a === "social_media_intel",
     isPipelineStage: true,
   },
   {
@@ -197,11 +208,11 @@ function buildAgentStates(events: AgentEvent[]): AgentState[] {
 
   // Most-recent timestamp across *all* events — used to detect activity stall.
   let lastAnyTs = 0;
-  for (const list of byAgent.values()) {
+  byAgent.forEach((list) => {
     if (list.length > 0) {
       lastAnyTs = Math.max(lastAnyTs, new Date(list[0].timestamp).getTime());
     }
-  }
+  });
   const STALE_MS = 90_000; // 90s with no events = pipeline likely paused
   const isPipelineStalled = lastAnyTs > 0 && Date.now() - lastAnyTs > STALE_MS;
 
@@ -298,22 +309,88 @@ function statusLabel(s: Status): string {
 
 // ── Main component ─────────────────────────────────────────────
 
-export default function AgentCrewPanel({ events }: { events: AgentEvent[] }) {
+export default function AgentCrewPanel({
+  events,
+  socialSignal,
+}: {
+  events: AgentEvent[];
+  socialSignal?: SocialSignal | null;
+}) {
   const states = useMemo(() => buildAgentStates(events), [events]);
   const [drawerAgent, setDrawerAgent] = useState<AgentId | null>(null);
   const [now, setNow] = useState<number>(Date.now());
 
-  // tick once a second so "Xs ago" stays fresh
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
 
-  // For the radar: only ONE axis can be the "live" pipeline-stage axis.
-  // Prefer a working pipeline-stage agent over the supervisor, since the
-  // supervisor is also "working" through the whole run.
-  const activePipelineAgent =
-    states.find((s) => s.def.isPipelineStage && s.status === "working") ?? null;
+  // ── Hand-off detection ─────────────────────────────────────────
+  // Each render we compare per-agent statuses with the previous render.
+  // When a pipeline agent transitions working → complete AND the next
+  // pipeline-stage agent is now `working`, we record a transient
+  // "handoff in" flag on the receiving agent. The flag expires on its
+  // own ~1500ms later. The visual is a small downward chevron rendered
+  // in the row's left gutter so it reads as "the baton just landed
+  // here", reinforcing collaboration without crowding the typography.
+  const prevStatusRef = useRef<Map<AgentId, Status>>(new Map());
+  const [handoffUntil, setHandoffUntil] = useState<Map<AgentId, number>>(
+    () => new Map(),
+  );
+
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    const newHandoffs: Array<[AgentId, number]> = [];
+    for (let i = 0; i < states.length; i++) {
+      const s = states[i];
+      const prevStatus = prev.get(s.def.id);
+      // Only consider pipeline-stage agents.
+      if (!s.def.isPipelineStage) {
+        prev.set(s.def.id, s.status);
+        continue;
+      }
+      // Find the previous pipeline-stage agent (the one upstream of this).
+      const upstream = (() => {
+        for (let j = i - 1; j >= 0; j--) {
+          if (states[j].def.isPipelineStage) return states[j];
+        }
+        return null;
+      })();
+      if (
+        upstream &&
+        s.status === "working" &&
+        prevStatus !== "working" &&
+        prev.get(upstream.def.id) === "working" &&
+        upstream.status === "complete"
+      ) {
+        newHandoffs.push([s.def.id, Date.now() + 1500]);
+      }
+      prev.set(s.def.id, s.status);
+    }
+    if (newHandoffs.length > 0) {
+      setHandoffUntil((m) => {
+        const next = new Map(m);
+        for (const [id, t] of newHandoffs) next.set(id, t);
+        return next;
+      });
+    }
+  }, [states]);
+
+  // Sweep expired handoffs each second so the visual fades cleanly.
+  useEffect(() => {
+    setHandoffUntil((m) => {
+      let dirty = false;
+      const next = new Map(m);
+      next.forEach((t, id) => {
+        if (t < now) {
+          next.delete(id);
+          dirty = true;
+        }
+      });
+      return dirty ? next : m;
+    });
+  }, [now]);
+
   const completed = states.filter(
     (s) => s.def.isPipelineStage && s.status === "complete",
   ).length;
@@ -324,53 +401,66 @@ export default function AgentCrewPanel({ events }: { events: AgentEvent[] }) {
     : null;
 
   return (
-    <div className="dark-scope flex h-full flex-col overflow-hidden border border-admin-rule bg-onyx">
-      {/* Header */}
-      <div className="border-b border-admin-rule bg-onyx-2 px-4 py-2.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Brain className="h-3.5 w-3.5 text-safety-org" />
-            <h3 className="font-mono text-[10px] uppercase tracking-[.14em] text-safety-org">
-              The Rescue Crew
-            </h3>
-          </div>
-          <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[.1em] text-steel-light">
-            <span>{totalEvents} events</span>
-            <span className="text-steel-light/50">·</span>
-            <span>{completed}/{PIPELINE_AGENTS.length} stages</span>
-          </div>
+    <div className="dark-scope flex h-full flex-col overflow-hidden bg-onyx">
+      {/* Editorial body — no outer card, just hairlines between blocks */}
+      <div className="scroll-thin flex-1 overflow-y-auto px-5 pt-3 pb-6">
+        {/* Standalone counts — replaces the wordy masthead, no kicker */}
+        <div className="flex items-baseline justify-between border-b border-admin-rule pb-2">
+          <span
+            className="font-serif text-[11px] tracking-[.16em] text-admin-text"
+            style={{ fontVariantCaps: "small-caps" }}
+          >
+            the rescue crew
+          </span>
+          <span
+            className="font-mono text-[10px] tracking-[.04em] text-admin-muted"
+            style={{ fontVariantNumeric: "tabular-nums" }}
+          >
+            {String(totalEvents).padStart(3, "0")} events ·{" "}
+            {String(completed).padStart(2, "0")}/{String(PIPELINE_AGENTS.length).padStart(2, "0")} stages
+          </span>
         </div>
-      </div>
 
-      {/* Body */}
-      <div className="scroll-thin flex-1 overflow-y-auto p-4 space-y-5">
-        <RadarHero
-          states={states}
-          activeAgent={activePipelineAgent?.def.id ?? null}
-        />
+        {/* Social legitimacy — one-line summary by default */}
+        <SocialLegitimacyRadar signal={socialSignal ?? null} />
 
-        <div>
-          <div className="mb-2 font-mono text-[10px] uppercase tracking-[.18em] text-steel-light">
-            The Rescue Crew
+        {/* Pipeline — one-line summary by default */}
+        <PipelineStepper states={states} />
+
+        {/* Roster — single-column editorial list */}
+        <div className="mt-5">
+          <div className="flex items-baseline justify-between border-b border-admin-rule pb-1.5">
+            <span
+              className="font-serif text-[11px] tracking-[.16em] text-admin-text"
+              style={{ fontVariantCaps: "small-caps" }}
+            >
+              the roster
+            </span>
+            <span
+              className="font-mono text-[10px] tracking-[.04em] text-admin-muted"
+              style={{ fontVariantNumeric: "tabular-nums" }}
+            >
+              07 agents
+            </span>
           </div>
           {totalEvents === 0 ? (
             <EmptyState />
           ) : (
-            <div className="grid grid-cols-2 gap-2.5">
+            <ul>
               {states.map((s) => (
-                <AgentCard
+                <AgentRow
                   key={s.def.id}
                   state={s}
                   now={now}
+                  handoffIn={handoffUntil.has(s.def.id)}
                   onClick={() => setDrawerAgent(s.def.id)}
                 />
               ))}
-            </div>
+            </ul>
           )}
         </div>
       </div>
 
-      {/* Side drawer */}
       {drawerState && (
         <AgentDetailDrawer
           state={drawerState}
@@ -386,115 +476,379 @@ export default function AgentCrewPanel({ events }: { events: AgentEvent[] }) {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center px-6 py-10 text-center">
-      <Brain className="mb-2 h-5 w-5 text-steel-light/50" />
-      <div className="font-mono text-[10px] uppercase tracking-[.12em] text-steel-light">
+      <div className="font-serif text-[10px] uppercase tracking-[.18em] text-admin-muted">
         Crew Standing By
       </div>
-      <div className="mt-1 max-w-[220px] text-[11px] text-steel-light/70">
-        Submit a citizen report or launch a demo scenario to see the agents
-        coordinate in real time.
+      <div className="mt-2 max-w-[240px] font-serif italic text-[12px] leading-relaxed text-admin-muted">
+        Submit a citizen report or launch a demo scenario to see the
+        agents coordinate in real time.
       </div>
     </div>
   );
 }
 
-// ── Pentagon radar hero ───────────────────────────────────────
+// ── Horizontal pipeline stepper ────────────────────────────────
+//
+// Quiet ops-console stepper. Each stage is one row in a fixed-width
+// monospace grid: a glyph (◌ ◐ ● !) + the agent's short name.
+// No glow, no gradient, no animated flow. The "running" stage is
+// marked by a half-filled glyph and a single accent color.
 
-function RadarHero({
-  states,
-  activeAgent,
-}: {
-  states: AgentState[];
-  activeAgent: AgentId | null;
-}) {
+function PipelineStepper({ states }: { states: AgentState[] }) {
+  // Collapsed: a single horizontal glyph row (◌ ◌ ● ● ◐ ◌) plus the count.
+  // Expanded: each glyph gets its agent name underneath. Most of the time
+  // the at-a-glance row is enough.
+  const [expanded, setExpanded] = useState(false);
+  const stages = states.filter((s) => s.def.isPipelineStage);
+  const completed = stages.filter((s) => s.status === "complete").length;
+
+  const glyphFor = (s: AgentState) => {
+    const isWorking = s.status === "working";
+    const isComplete = s.status === "complete";
+    const isErr = s.status === "error";
+    return {
+      char: isComplete ? "●" : isErr ? "!" : isWorking ? "◐" : "◌",
+      color: isErr
+        ? "var(--danger)"
+        : isComplete
+          ? "var(--safety-org)"
+          : isWorking
+            ? "var(--safety-org)"
+            : "var(--admin-muted)",
+      pulsing: isWorking,
+    };
+  };
+
+  return (
+    <div className="border-b border-admin-rule">
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-baseline gap-3 py-2.5 text-left"
+      >
+        <span
+          className="font-serif text-[11px] tracking-[.16em] text-admin-text"
+          style={{ fontVariantCaps: "small-caps" }}
+        >
+          pipeline
+        </span>
+        {/* glyph strip — fixed width, mono, tabular */}
+        <span
+          className="flex items-center gap-1 self-center font-mono text-[14px] leading-none"
+          style={{ letterSpacing: "0.18em" }}
+        >
+          {stages.map((s) => {
+            const g = glyphFor(s);
+            return (
+              <span
+                key={s.def.id}
+                className={g.pulsing ? "live-pulse" : ""}
+                style={{ color: g.color }}
+              >
+                {g.char}
+              </span>
+            );
+          })}
+        </span>
+        <span
+          className="ml-auto font-mono text-[10px] tracking-[.04em] text-admin-muted"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          {String(completed).padStart(2, "0")} / {String(stages.length).padStart(2, "0")}
+        </span>
+        <span className="font-mono text-[10px] text-admin-muted" aria-hidden>
+          {expanded ? "▾" : "▸"}
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="grid grid-cols-6 gap-x-2 gap-y-1 pb-3">
+          {stages.map((s) => {
+            const g = glyphFor(s);
+            return (
+              <div
+                key={s.def.id}
+                className="flex flex-col items-center text-center"
+              >
+                <span
+                  className={
+                    "font-mono text-[16px] leading-none " +
+                    (g.pulsing ? "live-pulse" : "")
+                  }
+                  style={{ color: g.color }}
+                >
+                  {g.char}
+                </span>
+                <span
+                  className="mt-1 font-serif text-[10px] italic text-admin-muted"
+                  style={{ letterSpacing: 0 }}
+                >
+                  {s.def.short.toLowerCase()}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Hexagon radar — Social-Media Legitimacy ────────────────────
+
+const SOCIAL_AXES: { key: keyof NonNullable<SocialSignal["axis_scores"]>; label: string }[] = [
+  { key: "source_credibility", label: "Source" },
+  { key: "recency",            label: "Recency" },
+  { key: "geo_relevance",      label: "Geo" },
+  { key: "corroboration",      label: "Corrob." },
+  { key: "media_evidence",     label: "Media" },
+  { key: "sentiment_urgency",  label: "Urgency" },
+];
+
+/**
+ * One-line plain-English verdict for the social-media intel signal.
+ * Ties together the discrete signals (sources, recency, evidence,
+ * corroboration) into the kind of sentence a duty officer would
+ * actually say out loud — "VERIFIED · 3 sources, 2m ago, photo".
+ *
+ * Intentionally short. The hexagon is for "show your work"; this
+ * line is what the audience remembers.
+ */
+function buildSocialVerdictLine(signal: SocialSignal | null): {
+  headline: string;
+  detail: string;
+} | null {
+  if (!signal) return null;
+
+  const v = signal.verdict;
+  const score = signal.legitimacy_score;
+  if (v == null && typeof score !== "number") return null;
+
+  const ev = signal.evidence_count ?? {};
+  const totalSources =
+    (ev.reddit ?? 0) +
+    (ev.rss ?? 0) +
+    (ev.gnews ?? 0) +
+    (ev.synthetic_tweets ?? 0);
+  const namedSources = [
+    (ev.reddit ?? 0) > 0 && "Reddit",
+    (ev.rss ?? 0) > 0 && "RSS",
+    (ev.gnews ?? 0) > 0 && "news",
+    (ev.synthetic_tweets ?? 0) > 0 && "X",
+  ].filter(Boolean) as string[];
+
+  // Headline word — replaces the more abstract `verdict` enum.
+  let headline = "Inconclusive";
+  if (v === "legitimate") headline = "Verified";
+  else if (v === "suspicious") headline = "Suspicious";
+  else if (v === "likely_false_alarm") headline = "Likely false";
+  else if (v === "insufficient_data") headline = "Insufficient data";
+  else if (typeof score === "number") {
+    if (score >= 70) headline = "Verified";
+    else if (score >= 40) headline = "Mixed signal";
+    else headline = "Suspicious";
+  }
+
+  // Detail — sources + corroboration + media evidence + recency.
+  const parts: string[] = [];
+  if (totalSources > 0) {
+    if (namedSources.length === 1) {
+      parts.push(`${totalSources} source on ${namedSources[0]}`);
+    } else if (namedSources.length > 1) {
+      parts.push(
+        `${totalSources} sources across ${namedSources.slice(0, 3).join(", ")}`,
+      );
+    } else {
+      parts.push(`${totalSources} corroborating signals`);
+    }
+  } else {
+    parts.push("no corroborating signals yet");
+  }
+
+  // Recency from the recency axis. ≥80 = "moments ago".
+  const recency = signal.axis_scores?.recency;
+  if (typeof recency === "number") {
+    if (recency >= 80) parts.push("posted in the last few minutes");
+    else if (recency >= 50) parts.push("posted recently");
+    else if (recency > 0) parts.push("older posts");
+  }
+
+  // Media evidence axis ≥60 = "photo/video on hand".
+  const media = signal.axis_scores?.media_evidence;
+  if (typeof media === "number" && media >= 60) {
+    parts.push("with photo/video");
+  }
+
+  // Geo-relevance — if it's pinned to the incident area, flag it.
+  const geo = signal.axis_scores?.geo_relevance;
+  if (typeof geo === "number" && geo >= 70) {
+    parts.push("on-site");
+  }
+
+  return {
+    headline,
+    detail: parts.join(" · "),
+  };
+}
+
+function SocialLegitimacyRadar({ signal }: { signal: SocialSignal | null }) {
+  // Collapsible by default. The one-line summary covers 95% of the
+  // information value; the full hexagon is for the curious. This was a
+  // major source of vertical clutter in the previous layout.
+  const [expanded, setExpanded] = useState(false);
+
+  // Editorial palette: deep forest green (= --safety-org), warm muted greys
+  const COLOR = "#1A5C41"; // editorial green
+  const RULE = "#D9D2C3";  // hairline (= --admin-rule)
+  const MUTED = "#4A453C"; // ink muted
   const size = 220;
   const cx = size / 2;
-  const cy = size / 2 + 6; // nudge down so labels don't crowd top
+  const cy = size / 2 + 6;
   const radius = 78;
-  const axes = PIPELINE_AGENTS;
-  const N = axes.length;
+  const N = SOCIAL_AXES.length;
   const angle = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / N;
 
-  // 0..1 fill per axis based on the agent's status
-  const fills = axes.map((a) => {
-    const st = states.find((s) => s.def.id === a.id)!;
-    if (st.status === "complete") return 1.0;
-    if (st.status === "error") return 0.6;
-    if (st.status === "working") {
-      // partial fill — scale by activity (events). 1 event ~ 0.45, 4+ ~ 0.85.
-      const n = st.reasoningCount + st.toolCallCount;
-      return Math.min(0.85, 0.45 + n * 0.1);
-    }
-    return 0.05; // queued — barely visible inner blob
-  });
-
-  // Polygon points
+  // 0..1 fill per axis
+  const axisScore = (key: keyof NonNullable<SocialSignal["axis_scores"]>): number => {
+    const v = signal?.axis_scores?.[key];
+    if (typeof v !== "number") return 0;
+    return Math.max(0, Math.min(100, v)) / 100;
+  };
+  const fills = SOCIAL_AXES.map(({ key }) => axisScore(key));
   const point = (i: number, r: number) => {
     const a = angle(i);
     return [cx + Math.cos(a) * r, cy + Math.sin(a) * r] as [number, number];
   };
-  const polyOuter = axes.map((_, i) => point(i, radius)).map(([x, y]) => `${x},${y}`).join(" ");
+  const polyOuter = SOCIAL_AXES.map((_, i) => point(i, radius))
+    .map(([x, y]) => `${x},${y}`).join(" ");
   const polyFill = fills
-    .map((f, i) => point(i, radius * Math.max(0.05, f)))
+    .map((f, i) => point(i, radius * Math.max(0.04, f)))
     .map(([x, y]) => `${x},${y}`)
     .join(" ");
-
-  // Gridlines (3 rings)
   const rings = [0.33, 0.66, 1.0].map((scale) =>
-    axes.map((_, i) => point(i, radius * scale))
+    SOCIAL_AXES.map((_, i) => point(i, radius * scale))
       .map(([x, y]) => `${x},${y}`)
       .join(" "),
   );
 
-  const allWorking = activeAgent !== null;
-  const anyComplete = states.some((s) => s.status === "complete");
-  const allDone =
-    states.filter((s) => s.def.isPipelineStage).every(
-      (s) => s.status === "complete",
-    );
+  const score = signal?.legitimacy_score;
+  const verdict = signal?.verdict;
+  const hasData = !!signal && (
+    typeof score === "number" || (signal.axis_scores && Object.keys(signal.axis_scores).length > 0)
+  );
 
-  let centerLabel = "AWAITING REPORT";
-  let centerColor = "#7E9989";
-  if (allDone) {
-    centerLabel = "ANALYSIS COMPLETE";
-    centerColor = "#6BBD95";
-  } else if (allWorking) {
-    centerLabel = "ANALYSIS IN PROGRESS…";
-    centerColor = "#facc15";
-  } else if (anyComplete) {
-    centerLabel = "ANALYSIS PAUSED";
-    centerColor = "#A6D9BC";
+  let centerLabel = "Awaiting social signals";
+  let centerColor = MUTED;
+  let scoreLabel = "—";
+  if (hasData) {
+    if (typeof score === "number") {
+      scoreLabel = String(Math.round(score));
+      centerColor =
+        score >= 70 ? COLOR :
+        score >= 40 ? "#A8741A" : "#A51C1C";
+    }
+    if (verdict === "legitimate") centerLabel = "Verdict — legitimate";
+    else if (verdict === "suspicious") centerLabel = "Verdict — suspicious";
+    else if (verdict === "likely_false_alarm") centerLabel = "Verdict — likely false";
+    else if (verdict === "insufficient_data") centerLabel = "Insufficient data";
+    else centerLabel = "Social legitimacy";
   }
 
+  const ev = signal?.evidence_count;
+
+  const STROKE = hasData ? COLOR : RULE;
+  const FILL = hasData ? "rgba(26, 92, 65, 0.06)" : "transparent";
+
+  // Collapsed: just one editorial line. No card border. Click anywhere
+  // on the row to expand into the full hexagon.
   return (
-    <div className="relative border border-admin-rule bg-onyx-2/60 p-3">
-      <div className="flex items-center justify-between">
-        <span className="font-mono text-[9px] uppercase tracking-[.18em] text-steel-light">
-          Pipeline Radar
+    <div className="border-b border-admin-rule">
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-baseline gap-2 py-2.5 text-left"
+      >
+        <span
+          className="font-serif text-[11px] tracking-[.16em] text-admin-text"
+          style={{ fontVariantCaps: "small-caps" }}
+        >
+          social legitimacy
         </span>
-        <span className="font-mono text-[9px] uppercase tracking-[.12em] text-steel-light">
-          5-stage cascade
+        <span className="font-serif italic text-[12px] text-admin-muted">
+          —
         </span>
-      </div>
+        <span
+          className="font-mono text-[13px]"
+          style={{
+            color: centerColor,
+            fontVariantNumeric: "tabular-nums",
+            letterSpacing: "-0.005em",
+          }}
+        >
+          {scoreLabel}
+        </span>
+        <span
+          className="font-serif italic text-[12px]"
+          style={{ color: centerColor }}
+        >
+          {hasData
+            ? centerLabel.replace(/^Verdict\s—\s/, "").toLowerCase()
+            : "awaiting signals"}
+        </span>
+        <span className="ml-auto inline-flex items-baseline gap-2">
+          <span
+            className="font-mono text-[9px] tracking-[.18em]"
+            style={{ color: hasData ? COLOR : MUTED }}
+          >
+            {hasData ? "live" : "idle"}
+          </span>
+          <span
+            className="font-mono text-[10px] text-admin-muted"
+            aria-hidden
+          >
+            {expanded ? "▾" : "▸"}
+          </span>
+        </span>
+      </button>
+
+      {/* Plain-English verdict line — always visible, even when the
+          radar is collapsed. The hexagon shows your work; this line
+          is what people remember. */}
+      {(() => {
+        const verdictLine = buildSocialVerdictLine(signal);
+        if (!verdictLine) return null;
+        return (
+          <div className="-mt-1.5 pb-2">
+            <div className="flex items-baseline gap-2 leading-tight">
+              <span
+                className="font-serif text-[12px] font-semibold tracking-[.02em]"
+                style={{ color: centerColor }}
+              >
+                {verdictLine.headline.toUpperCase()}
+              </span>
+              <span className="font-serif italic text-[11px] text-admin-muted">
+                {verdictLine.detail}
+              </span>
+            </div>
+          </div>
+        );
+      })()}
+
+      {expanded && (
+        <div className="pb-3">
 
       <div className="flex items-center justify-center">
-        <svg
-          width={size}
-          height={size + 14}
-          viewBox={`0 0 ${size} ${size + 14}`}
-        >
-          {/* gridlines */}
+        <svg width={size} height={size + 14} viewBox={`0 0 ${size} ${size + 14}`}>
           {rings.map((pts, i) => (
             <polygon
               key={i}
               points={pts}
               fill="none"
-              stroke="rgba(168, 196, 181, 0.12)"
+              stroke={RULE}
+              strokeOpacity={i === 2 ? 0.9 : 0.5}
               strokeWidth={1}
+              strokeDasharray={i === 2 ? "0" : "2,3"}
             />
           ))}
-          {/* axes */}
-          {axes.map((_, i) => {
+          {SOCIAL_AXES.map((_, i) => {
             const [x, y] = point(i, radius);
             return (
               <line
@@ -503,229 +857,425 @@ function RadarHero({
                 y1={cy}
                 x2={x}
                 y2={y}
-                stroke="rgba(168, 196, 181, 0.12)"
+                stroke={RULE}
+                strokeOpacity={0.5}
                 strokeWidth={1}
               />
             );
           })}
-          {/* outer polygon hint */}
-          <polygon
-            points={polyOuter}
-            fill="rgba(107, 189, 149, 0.04)"
-            stroke="rgba(107, 189, 149, 0.25)"
-            strokeWidth={1}
-          />
-          {/* dynamic fill */}
           <polygon
             points={polyFill}
-            fill="rgba(250, 204, 21, 0.18)"
-            stroke="#facc15"
+            fill={FILL}
+            stroke={STROKE}
             strokeWidth={1.5}
           />
-          {/* per-axis dots, glow on the active axis */}
-          {axes.map((a, i) => {
+          {SOCIAL_AXES.map((a, i) => {
             const [x, y] = point(i, radius * Math.max(0.05, fills[i]));
-            const isActive = a.id === activeAgent;
             return (
-              <g key={a.id}>
-                {isActive && (
-                  <circle cx={x} cy={y} r={7} fill={`${a.color}33`} />
-                )}
-                <circle
-                  cx={x}
-                  cy={y}
-                  r={isActive ? 4 : 3}
-                  fill={a.color}
-                  stroke="#0F1A14"
-                  strokeWidth={1}
-                />
-              </g>
+              <rect
+                key={a.key}
+                x={x - 2}
+                y={y - 2}
+                width={4}
+                height={4}
+                fill={STROKE}
+              />
             );
           })}
-          {/* axis labels */}
-          {axes.map((a, i) => {
+          {SOCIAL_AXES.map((a, i) => {
             const [x, y] = point(i, radius + 14);
             const ang = angle(i);
-            // anchor by quadrant for readable spacing
             let textAnchor: "start" | "middle" | "end" = "middle";
             if (Math.cos(ang) > 0.3) textAnchor = "start";
             else if (Math.cos(ang) < -0.3) textAnchor = "end";
             return (
               <text
-                key={a.id}
+                key={a.key}
                 x={x}
                 y={y}
                 textAnchor={textAnchor}
                 dominantBaseline="middle"
-                fill={a.id === activeAgent ? a.color : "#A9C2B5"}
+                fill={MUTED}
                 style={{
-                  fontFamily:
-                    "var(--font-mono), ui-monospace, SFMono-Regular, monospace",
-                  fontSize: 9,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  fontWeight: a.id === activeAgent ? 600 : 400,
+                  fontFamily: "var(--font-serif), Georgia, serif",
+                  fontStyle: "italic",
+                  fontSize: 10,
+                  letterSpacing: "0.02em",
                 }}
               >
-                {a.short}
+                {a.label.toLowerCase()}
               </text>
             );
           })}
+          <text
+            x={cx}
+            y={cy}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill={centerColor}
+            style={{
+              fontFamily: "var(--font-serif), Georgia, serif",
+              fontSize: 28,
+              fontWeight: 600,
+              fontVariantNumeric: "tabular-nums",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            {scoreLabel}
+          </text>
+          <text
+            x={cx}
+            y={cy + 18}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill={MUTED}
+            style={{
+              fontFamily: "var(--font-mono), ui-monospace, monospace",
+              fontSize: 8,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+            }}
+          >
+            score · 0–100
+          </text>
         </svg>
       </div>
 
-      <div
-        className="text-center font-mono text-[10px] tracking-[.18em]"
-        style={{ color: centerColor }}
-      >
-        {centerLabel}
+      <div className="mt-1 border-t border-admin-rule pt-2">
+        <div
+          className="font-serif italic text-[12px]"
+          style={{ color: centerColor }}
+        >
+          {centerLabel}
+        </div>
       </div>
+
+      {ev && (
+        <div className="mt-2 grid grid-cols-4 gap-x-2 gap-y-0.5 border-t border-admin-rule pt-2">
+          {([
+            ["reddit", ev.reddit ?? 0, "Reddit"],
+            ["rss", ev.rss ?? 0, "RSS"],
+            ["gnews", ev.gnews ?? 0, "GNews"],
+            ["synthetic_tweets", ev.synthetic_tweets ?? 0, "Synth-X"],
+          ] as const).map(([k, n, lbl]) => (
+            <div key={k} className="flex flex-col">
+              <span className="font-serif text-[9px] uppercase tracking-[.16em] text-admin-muted">
+                {lbl}
+              </span>
+              <span
+                className="font-mono text-[14px]"
+                style={{
+                  color: n > 0 ? "var(--admin-text)" : "var(--admin-muted)",
+                  fontVariantNumeric: "tabular-nums",
+                  opacity: n > 0 ? 1 : 0.4,
+                }}
+              >
+                {String(n).padStart(2, "0")}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+        </div>
+      )}
     </div>
   );
 }
 
-// ── Agent card ────────────────────────────────────────────────
 
-function AgentCard({
+// ── Live thought ticker ────────────────────────────────────────
+//
+// A small rolling feed of an agent's last reasoning lines. The newest
+// line uses a typewriter "is typing" reveal; older lines stay rendered
+// (truncated) and fade as they age. Visually this changes the agent
+// roster from a list of static rows into a wall of small live monitors.
+//
+// We only animate a line on its first appearance — subsequent re-renders
+// (from `now` ticking, etc.) show the already-revealed text instantly.
+// React's `key` prop on the event id keeps the inner typewriter state
+// alive across parent re-renders so the animation doesn't restart.
+
+interface ThoughtTickerProps {
+  events: AgentEvent[]; // newest-first list of all this agent's events
+  dimmed: boolean;       // true when the agent is "complete" — fade the lines a touch
+  fallback: string;      // last-resort line if we have no reasoning events
+}
+
+function ThoughtTicker({ events, dimmed, fallback }: ThoughtTickerProps) {
+  // Pull the most recent reasoning lines. We exclude tool-calls and
+  // mission events — those are surfaced in counters/markers and would
+  // crowd the ticker.
+  const lines = useMemo(() => {
+    const out: { id: string; text: string; ts: number }[] = [];
+    for (const e of events) {
+      if (e.type !== "agent.reasoning") continue;
+      const text = summariseEvent(e).trim();
+      if (!text) continue;
+      out.push({
+        id: e.id,
+        text,
+        ts: new Date(e.timestamp).getTime(),
+      });
+      if (out.length >= 3) break;
+    }
+    return out; // newest-first
+  }, [events]);
+
+  if (lines.length === 0) {
+    return (
+      <div className="mt-0.5 truncate font-serif italic text-[11px] text-admin-muted">
+        {fallback}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-0.5 space-y-0.5 leading-tight">
+      {lines.map((ln, idx) => (
+        <TickerLine
+          key={ln.id}
+          text={ln.text}
+          // Only the newest line types in. Older lines render instantly
+          // — they were already typed in a previous render cycle.
+          animate={idx === 0}
+          // Older lines fade as they age. Index 0 = full ink, 1 = 70%,
+          // 2 = 45%. Combined with `dimmed` (agent finished) we go
+          // a notch quieter.
+          opacity={(idx === 0 ? 1 : idx === 1 ? 0.7 : 0.45) * (dimmed ? 0.85 : 1)}
+        />
+      ))}
+    </div>
+  );
+}
+
+// One line in the ticker. Typewriter for "active" lines (newest), instant
+// for the rest. We deliberately keep the speed moderate (~22ms/char) so
+// the animation reads as "thinking" not "typing".
+function TickerLine({
+  text,
+  animate,
+  opacity,
+}: {
+  text: string;
+  animate: boolean;
+  opacity: number;
+}) {
+  const [revealed, setRevealed] = useState(animate ? 0 : text.length);
+
+  useEffect(() => {
+    if (!animate) {
+      setRevealed(text.length);
+      return;
+    }
+    setRevealed(0);
+    let i = 0;
+    const id = setInterval(() => {
+      i++;
+      setRevealed(i);
+      if (i >= text.length) clearInterval(id);
+    }, 22);
+    return () => clearInterval(id);
+  }, [text, animate]);
+
+  const showCursor = animate && revealed < text.length;
+
+  return (
+    <div
+      className="truncate font-serif italic text-[11px] text-admin-text"
+      style={{ opacity }}
+    >
+      {text.slice(0, revealed)}
+      {showCursor && (
+        <span
+          className="inline-block w-[1px] live-pulse"
+          style={{
+            background: "var(--safety-org)",
+            height: "0.85em",
+            marginLeft: 1,
+            verticalAlign: "-0.05em",
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Agent row (single-column editorial list) ──────────────────
+//
+// Each agent is one row: small icon + serif name + italic role / latest
+// thought + small mono counters and timestamp on the right. Whole row
+// is the click target for the detail drawer. We use a hairline between
+// rows instead of a card border, which is much calmer at narrow widths.
+
+function AgentRow({
   state,
   now,
+  handoffIn,
   onClick,
 }: {
   state: AgentState;
   now: number;
+  handoffIn: boolean;
   onClick: () => void;
 }) {
   const { def, status } = state;
   const Icon = def.Icon;
-  const color = status === "error" ? "#fb7185" : def.color;
   const isWorking = status === "working";
   const isComplete = status === "complete";
   const isQueued = status === "queued";
   const isError = status === "error";
 
-  const tileGlow = isWorking
-    ? `0 0 0 1px ${color}, 0 0 18px -2px ${color}`
-    : isComplete
-      ? `inset 0 0 0 1px ${color}40`
-      : "none";
-
-  const pillCls = isWorking
-    ? "border bg-onyx text-[color:var(--c)] border-[color:var(--c)]/60"
-    : isComplete
-      ? "border border-[color:var(--c)]/30 bg-[color:var(--c)]/10 text-[color:var(--c)]"
-      : isError
-        ? "border border-danger/40 bg-danger/15 text-danger"
-        : "border border-admin-rule bg-white/[0.02] text-steel-light";
+  const stateInk = isError
+    ? "var(--danger)"
+    : isWorking
+      ? "var(--safety-org)"
+      : isComplete
+        ? "var(--admin-text)"
+        : "var(--admin-muted)";
 
   return (
-    <button
-      onClick={onClick}
-      className={
-        "group relative flex flex-col gap-2 border bg-onyx-2/60 px-3 py-3 text-left transition " +
-        "hover:bg-onyx-2 " +
-        (isWorking
-          ? "border-[color:var(--c)]"
-          : isComplete
-            ? "border-admin-rule/80"
-            : isError
-              ? "border-danger/40"
-              : "border-admin-rule/60")
-      }
-      style={
-        {
-          ["--c" as string]: color,
-          boxShadow: tileGlow,
-          opacity: isQueued ? 0.55 : 1,
-        } as React.CSSProperties
-      }
-    >
-      {/* Icon tile */}
-      <div className="flex items-start justify-between">
-        <div
-          className={
-            "flex h-9 w-9 items-center justify-center border bg-onyx " +
-            (isWorking
-              ? "border-[color:var(--c)] shadow-[0_0_12px_-2px_var(--c)]"
-              : isComplete
-                ? "border-[color:var(--c)]/40"
-                : isError
-                  ? "border-danger/50"
-                  : "border-admin-rule")
-          }
-          style={{ color }}
-        >
-          <Icon className="h-4 w-4" />
-        </div>
-        {isWorking && (
+    <li className="relative">
+      {/* Hand-off "baton landing" indicator. When the upstream pipeline
+          stage completes and this agent starts working, we render a
+          small descending chevron in the left gutter for ~1.5s. The
+          chevron is animated downward (slide-in) so the eye sees the
+          baton arrive at the receiving agent. We also briefly tint the
+          row's left edge in the same warm orange.
+
+          Pure visual: zero impact on layout, click target, or
+          accessibility. No motion-prefers-reduced check yet because
+          the slide is short and subtle. */}
+      {handoffIn && (
+        <>
           <span
-            className="h-1.5 w-1.5 animate-pulse rounded-full"
+            aria-hidden
+            className="pointer-events-none absolute left-[-14px] top-1/2 -translate-y-1/2"
             style={{
-              background: color,
-              boxShadow: `0 0 8px ${color}`,
+              animation: "handoff-arrive 600ms ease-out 1",
+            }}
+          >
+            <svg width="10" height="14" viewBox="0 0 10 14">
+              <polyline
+                points="2,2 5,5 8,2"
+                fill="none"
+                stroke="var(--safety-org)"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <polyline
+                points="2,7 5,10 8,7"
+                fill="none"
+                stroke="var(--safety-org)"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.5"
+              />
+            </svg>
+          </span>
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 left-0 w-[2px]"
+            style={{
+              background: "var(--safety-org)",
+              animation: "handoff-flash 1500ms ease-out 1 forwards",
             }}
           />
-        )}
-      </div>
-
-      {/* Name + role */}
-      <div>
-        <div
-          className="font-serif text-[15px] font-semibold leading-tight"
-          style={{ color: isQueued ? "#7E9989" : "#E5EFE9" }}
-        >
-          {def.name}
-        </div>
-        <div className="mt-0.5 truncate text-[10px] text-steel-light">
-          {isWorking || isComplete || isError
-            ? state.lastSummary || def.role
-            : def.role}
-        </div>
-      </div>
-
-      {/* Status pill + meta */}
-      <div className="mt-auto flex items-center justify-between">
+        </>
+      )}
+      <button
+        onClick={onClick}
+        className="group flex w-full items-baseline gap-3 border-b border-admin-rule py-2.5 text-left transition hover:bg-onyx-2"
+        style={{ opacity: isQueued ? 0.65 : 1 }}
+      >
+        {/* Status dot */}
         <span
           className={
-            "inline-flex items-center gap-1 px-1.5 py-0.5 font-mono text-[9px] tracking-[.14em] " +
-            pillCls
+            "mt-1 h-1.5 w-1.5 shrink-0 self-center " + (isWorking ? "live-pulse" : "")
           }
-        >
-          {isWorking && (
+          style={{
+            background: isError
+              ? "var(--danger)"
+              : isWorking
+                ? "var(--safety-org)"
+                : isComplete
+                  ? "var(--safety-org)"
+                  : "var(--admin-rule)",
+          }}
+        />
+
+        {/* Icon (small, ink) */}
+        <Icon
+          className="h-3 w-3 shrink-0 self-center"
+          style={{ color: isQueued ? "var(--admin-muted)" : "var(--admin-text)" }}
+        />
+
+        {/* Name + role / latest summary */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-2">
             <span
-              className="h-1.5 w-1.5 animate-pulse rounded-full"
-              style={{ background: "currentColor" }}
+              className="font-serif text-[14px] font-semibold leading-none"
+              style={{
+                color: isQueued ? "var(--admin-muted)" : "var(--admin-text)",
+                letterSpacing: "-0.005em",
+              }}
+            >
+              {def.name}
+            </span>
+            <span
+              className="font-serif italic text-[10px] tracking-[.04em]"
+              style={{ color: stateInk }}
+            >
+              {statusLabel(status).toLowerCase()}
+            </span>
+          </div>
+          {/* Rolling thought ticker. While the agent is queued or has
+              never spoken we just show its role tagline. The moment any
+              reasoning lands we switch to the rolling 3-line ticker — the
+              newest line types in (typewriter), older lines fade and
+              shift up. The effect makes the agents feel like they're
+              actively thinking instead of just polled.
+
+              We don't show tool-calls in the ticker because they're
+              dense ("called search_news with q='...'") and crowd the
+              reasoning. Tool counts are surfaced on the right gutter. */}
+          {isQueued || (!isWorking && !isComplete && !isError) ? (
+            <div className="mt-0.5 truncate font-serif italic text-[11px] text-admin-muted">
+              {def.role}
+            </div>
+          ) : (
+            <ThoughtTicker
+              events={state.events}
+              dimmed={isComplete}
+              fallback={state.lastSummary || def.role}
             />
           )}
-          {isComplete && <CheckCircle2 className="h-2.5 w-2.5" />}
-          {isError && <AlertTriangle className="h-2.5 w-2.5" />}
-          {statusLabel(status)}
-        </span>
+        </div>
 
-        {!isQueued && (
-          <span className="font-mono text-[9px] text-steel-light">
-            {formatRelative(now, state.lastEventAt)}
-          </span>
-        )}
-      </div>
-
-      {/* counts strip — only when there's data */}
-      {(state.toolCallCount > 0 || state.reasoningCount > 0) && (
-        <div className="flex items-center gap-2 border-t border-admin-rule/40 pt-1.5 font-mono text-[9px] text-steel-light">
-          {state.reasoningCount > 0 && (
-            <span className="inline-flex items-center gap-1">
-              <Brain className="h-2.5 w-2.5" />
-              {state.reasoningCount}
+        {/* Right gutter — mono counters + relative time */}
+        <div
+          className="flex shrink-0 flex-col items-end gap-0.5 self-center font-mono text-[9px] text-admin-muted"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          {(state.reasoningCount > 0 || state.toolCallCount > 0) && (
+            <span>
+              {state.reasoningCount > 0 && (
+                <>R{String(state.reasoningCount).padStart(2, "0")} </>
+              )}
+              {state.toolCallCount > 0 && (
+                <>T{String(state.toolCallCount).padStart(2, "0")}</>
+              )}
             </span>
           )}
-          {state.toolCallCount > 0 && (
-            <span className="inline-flex items-center gap-1">
-              <Wrench className="h-2.5 w-2.5" />
-              {state.toolCallCount}
+          {!isQueued && (
+            <span style={{ opacity: 0.7 }}>
+              {formatRelative(now, state.lastEventAt)}
             </span>
           )}
         </div>
-      )}
-    </button>
+      </button>
+    </li>
   );
 }
 
@@ -740,80 +1290,102 @@ function AgentDetailDrawer({
 }) {
   const { def, events } = state;
   const Icon = def.Icon;
-  const color = state.status === "error" ? "#fb7185" : def.color;
+  const accent =
+    state.status === "error" ? "var(--danger)" : "var(--safety-org)";
 
   return (
     <div className="absolute inset-0 z-50 flex">
-      {/* Backdrop */}
       <button
         aria-label="Close"
         onClick={onClose}
-        className="flex-1 bg-black/50 backdrop-blur-[2px] cursor-default"
+        className="flex-1 bg-black/30 cursor-default"
       />
-      {/* Drawer */}
-      <aside className="dark-scope flex h-full w-[min(420px,100%)] flex-col overflow-hidden border-l border-admin-rule bg-onyx shadow-2xl">
-        {/* Drawer header */}
-        <div
-          className="flex items-center gap-3 border-b border-admin-rule bg-onyx-2 px-4 py-3"
-          style={{ borderTopColor: color }}
-        >
-          <div
-            className="flex h-9 w-9 items-center justify-center border bg-onyx"
-            style={{ borderColor: color, color }}
-          >
-            <Icon className="h-4 w-4" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div
-              className="font-mono text-[9px] uppercase tracking-[.16em]"
-              style={{ color }}
+      {/* Editorial paper drawer */}
+      <aside className="dark-scope flex h-full w-[min(440px,100%)] flex-col overflow-hidden border-l border-admin-rule bg-onyx-2 shadow-[-12px_0_32px_rgba(0,0,0,0.08)]">
+        {/* Masthead */}
+        <div className="border-b border-admin-text px-5 pb-2 pt-4">
+          <div className="flex items-baseline justify-between">
+            <div>
+              <div
+                className="font-serif text-[10px] uppercase tracking-[.18em]"
+                style={{ color: accent, fontVariantCaps: "small-caps" }}
+              >
+                {statusLabel(state.status).toLowerCase()}
+              </div>
+              <div className="mt-0.5 flex items-baseline gap-2">
+                <Icon className="h-4 w-4 text-admin-text" />
+                <h2 className="font-serif text-[22px] font-semibold leading-none text-admin-text">
+                  {def.name}
+                </h2>
+                <span className="font-serif italic text-[12px] text-admin-muted">
+                  agent
+                </span>
+              </div>
+              <div className="mt-1 font-serif italic text-[12px] text-admin-muted">
+                {def.role}
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-admin-muted hover:text-admin-text"
             >
-              {statusLabel(state.status)}
-            </div>
-            <div className="font-serif text-[15px] font-semibold text-admin-text">
-              {def.name} Agent
-            </div>
-            <div className="text-[11px] text-steel-light">{def.role}</div>
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="text-steel-light hover:text-admin-text"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
 
-        {/* Stats strip */}
-        <div className="flex items-center justify-between border-b border-admin-rule/60 bg-onyx-2/40 px-4 py-2 font-mono text-[10px] uppercase tracking-[.1em] text-steel-light">
-          <span className="inline-flex items-center gap-1">
-            <Brain className="h-3 w-3" /> {state.reasoningCount} thoughts
+        {/* Ledger strip */}
+        <div className="flex items-center justify-between border-b border-admin-rule px-5 py-2">
+          <span className="inline-flex items-center gap-1.5 font-serif text-[11px] italic text-admin-muted">
+            <Brain className="h-3 w-3" />
+            <span
+              className="font-mono not-italic"
+              style={{ fontVariantNumeric: "tabular-nums" }}
+            >
+              {String(state.reasoningCount).padStart(2, "0")}
+            </span>
+            thoughts
           </span>
-          <span className="inline-flex items-center gap-1">
-            <Wrench className="h-3 w-3" /> {state.toolCallCount} tools
+          <span className="inline-flex items-center gap-1.5 font-serif text-[11px] italic text-admin-muted">
+            <Wrench className="h-3 w-3" />
+            <span
+              className="font-mono not-italic"
+              style={{ fontVariantNumeric: "tabular-nums" }}
+            >
+              {String(state.toolCallCount).padStart(2, "0")}
+            </span>
+            tools
           </span>
           {state.errorCount > 0 && (
-            <span className="inline-flex items-center gap-1 text-danger">
-              <AlertTriangle className="h-3 w-3" /> {state.errorCount} errors
+            <span className="inline-flex items-center gap-1.5 font-serif text-[11px] italic text-danger">
+              <AlertTriangle className="h-3 w-3" />
+              <span
+                className="font-mono not-italic"
+                style={{ fontVariantNumeric: "tabular-nums" }}
+              >
+                {String(state.errorCount).padStart(2, "0")}
+              </span>
+              errors
             </span>
           )}
         </div>
 
-        {/* Events */}
-        <div className="scroll-thin flex-1 overflow-y-auto p-3">
+        {/* Events column */}
+        <div className="scroll-thin flex-1 overflow-y-auto px-5 py-3">
           {events.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
-              <Clock className="mb-2 h-5 w-5 text-steel-light/50" />
-              <div className="font-mono text-[10px] uppercase tracking-[.12em] text-steel-light">
+              <Clock className="mb-2 h-5 w-5 text-admin-muted" />
+              <div className="font-serif text-[11px] uppercase tracking-[.18em] text-admin-muted">
                 No activity yet
               </div>
-              <div className="mt-1 max-w-[240px] text-[11px] text-steel-light/70">
+              <div className="mt-2 max-w-[240px] font-serif italic text-[12px] leading-relaxed text-admin-muted">
                 {def.name} hasn&apos;t been engaged on a current incident.
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {events.map((e) => (
-                <DrawerCard key={e.id} event={e} color={color} />
+                <DrawerCard key={e.id} event={e} accent={accent} />
               ))}
             </div>
           )}
@@ -823,56 +1395,66 @@ function AgentDetailDrawer({
   );
 }
 
-function DrawerCard({ event, color }: { event: AgentEvent; color: string }) {
+function DrawerCard({
+  event,
+  accent,
+}: {
+  event: AgentEvent;
+  accent: string;
+}) {
   const [open, setOpen] = useState(false);
   const time = new Date(event.timestamp).toLocaleTimeString("en-IN", {
     hour12: false,
   });
   const expandable = isReasoning(event) || isToolCall(event) || isMission(event);
 
-  let kind = "EVENT";
-  if (isReasoning(event)) kind = "REASONING";
-  else if (isToolCall(event)) kind = "TOOL CALL";
-  else if (isMission(event)) kind = "MISSION";
-  else if (isError(event)) kind = "ERROR";
+  let kind = "Event";
+  if (isReasoning(event)) kind = "Reasoning";
+  else if (isToolCall(event)) kind = "Tool call";
+  else if (isMission(event)) kind = "Mission";
+  else if (isError(event)) kind = "Error";
+
+  const kindColor = isError(event) ? "var(--danger)" : accent;
 
   return (
-    <div
-      className="overflow-hidden border border-admin-rule/70 bg-onyx-2/50"
-      style={{ borderLeft: `2px solid ${color}` }}
-    >
+    <article className="border-b border-admin-rule pb-3 last:border-b-0">
       <button
         onClick={() => expandable && setOpen((v) => !v)}
         className={
-          "flex w-full items-start gap-2 px-3 py-2 text-left " +
+          "flex w-full items-start gap-3 text-left " +
           (expandable ? "cursor-pointer" : "cursor-default")
         }
       >
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-baseline gap-2">
             <span
-              className="font-mono text-[9px] uppercase tracking-[.14em]"
-              style={{ color: isError(event) ? "#fb7185" : color }}
+              className="font-serif text-[10px] uppercase tracking-[.18em]"
+              style={{ color: kindColor, fontVariantCaps: "small-caps" }}
             >
               {kind}
             </span>
-            <span className="ml-auto font-mono text-[9px] text-steel-light">
+            <span className="h-px flex-1 bg-admin-rule" />
+            <span
+              className="font-mono text-[9px] tracking-[.04em] text-admin-muted"
+              style={{ fontVariantNumeric: "tabular-nums" }}
+            >
               {time}
             </span>
           </div>
-          <div
+          <p
             className={
-              "mt-1 break-words text-[12px] leading-snug " +
-              (isError(event) ? "text-danger" : "text-admin-text")
+              "mt-1.5 font-serif text-[13px] leading-snug break-words " +
+              (isError(event) ? "text-danger italic" : "text-admin-text")
             }
+            style={{ letterSpacing: "-0.005em" }}
           >
             {summariseEvent(event)}
-          </div>
+          </p>
         </div>
         {expandable && (
           <ChevronDown
             className={
-              "mt-1 h-3 w-3 shrink-0 text-steel-light transition " +
+              "mt-1 h-3 w-3 shrink-0 text-admin-muted transition " +
               (open ? "rotate-180" : "")
             }
           />
@@ -880,40 +1462,31 @@ function DrawerCard({ event, color }: { event: AgentEvent; color: string }) {
       </button>
 
       {open && expandable && (
-        <div className="border-t border-white/5 bg-onyx/60 px-3 py-2">
+        <div className="mt-2 space-y-2">
           {isReasoning(event) && (
             <div>
-              <div
-                className="mb-1.5 font-mono text-[9px] uppercase tracking-[.14em]"
-                style={{ color }}
-              >
-                Full reasoning
+              <div className="font-serif italic text-[10px] text-admin-muted">
+                full reasoning
               </div>
-              <p className="whitespace-pre-wrap break-words text-[11px] leading-relaxed text-admin-text">
+              <p className="mt-0.5 whitespace-pre-wrap break-words font-serif text-[12px] leading-relaxed text-admin-text">
                 {String(event.payload?.thought ?? "—")}
               </p>
             </div>
           )}
           {isToolCall(event) && (
             <div>
-              <div
-                className="mb-1.5 font-mono text-[9px] uppercase tracking-[.14em]"
-                style={{ color }}
-              >
-                Tool arguments
+              <div className="font-serif italic text-[10px] text-admin-muted">
+                tool arguments
               </div>
-              <pre className="scroll-thin max-h-48 overflow-auto whitespace-pre-wrap break-words bg-onyx-2/60 p-2 font-mono text-[10px] text-admin-muted">
+              <pre className="scroll-thin mt-1 max-h-48 overflow-auto whitespace-pre-wrap break-words border-l-2 border-admin-rule bg-slate px-2 py-1.5 font-mono text-[10px] text-admin-text">
                 {JSON.stringify(event.payload?.args ?? {}, null, 2)}
               </pre>
               {event.payload?.result_summary ? (
                 <div className="mt-2">
-                  <div
-                    className="mb-1.5 font-mono text-[9px] uppercase tracking-[.14em]"
-                    style={{ color }}
-                  >
-                    Result
+                  <div className="font-serif italic text-[10px] text-admin-muted">
+                    result
                   </div>
-                  <p className="whitespace-pre-wrap break-words text-[11px] leading-relaxed text-admin-muted">
+                  <p className="mt-0.5 whitespace-pre-wrap break-words font-serif text-[12px] leading-relaxed text-admin-text">
                     {String(event.payload.result_summary)}
                   </p>
                 </div>
@@ -921,12 +1494,12 @@ function DrawerCard({ event, color }: { event: AgentEvent; color: string }) {
             </div>
           )}
           {isMission(event) && (
-            <pre className="scroll-thin max-h-48 overflow-auto whitespace-pre-wrap break-words bg-onyx-2/60 p-2 font-mono text-[10px] text-admin-muted">
+            <pre className="scroll-thin max-h-48 overflow-auto whitespace-pre-wrap break-words border-l-2 border-admin-rule bg-slate px-2 py-1.5 font-mono text-[10px] text-admin-text">
               {JSON.stringify(event.payload ?? {}, null, 2)}
             </pre>
           )}
         </div>
       )}
-    </div>
+    </article>
   );
 }

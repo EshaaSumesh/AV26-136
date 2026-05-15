@@ -200,9 +200,42 @@ export const api = {
       }>;
     }>("/demo/scenarios"),
 
-  runScenario: (scenario_id: string) =>
-    http<{ accepted: boolean; run_id: string; title: string }>("/demo/run", {
-      method: "POST",
-      body: JSON.stringify({ scenario_id }),
-    }),
+  runScenario: (scenario_id: string, opts?: { record?: boolean }) =>
+    http<{ accepted: boolean; run_id: string; title: string; recording?: boolean }>(
+      "/demo/run",
+      {
+        method: "POST",
+        body: JSON.stringify({ scenario_id, record: opts?.record ?? false }),
+      },
+    ),
+
+  listRecordings: () =>
+    http<{
+      recordings: Array<{
+        scenario_id: string;
+        recorded_at: string | null;
+        event_count: number;
+        duration_ms: number;
+      }>;
+    }>("/demo/recordings"),
+
+  replayScenario: (scenario_id: string, speed = 1.0) =>
+    http<{ accepted: boolean; run_id?: string; reason?: string; message?: string }>(
+      "/demo/replay",
+      {
+        method: "POST",
+        body: JSON.stringify({ scenario_id, speed }),
+      },
+    ),
+
+  demoStatus: () =>
+    http<{
+      active: Array<{
+        run_id: string;
+        scenario_id: string;
+        title: string;
+        started_at: string;
+        kind?: string;
+      }>;
+    }>("/demo/status"),
 };

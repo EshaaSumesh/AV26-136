@@ -18,6 +18,7 @@ export type EventType =
   | "route.invalidated"
   | "route.recomputed"
   | "public.alert.broadcast"
+  | "social.signal.scored"
   | "agent.reasoning"
   | "agent.tool_call"
   | "agent.error";
@@ -84,6 +85,11 @@ export interface Mission {
   route_distance_km: number | null;
   route_eta_minutes: number | null;
   negotiation_history: NegotiationEntry[];
+  // Why this base was picked + which alternatives were rejected.
+  // Populated by the supervisor parsing the Dispatch Strategist's
+  // output. Optional because old missions in flight may not have it.
+  dispatch_reasoning?: string | null;
+  dispatch_alternatives?: Array<{ name: string; reason: string }>;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -226,6 +232,7 @@ export type DisasterType = (typeof DISASTER_TYPES)[number];
 
 export const AGENT_COLORS: Record<string, string> = {
   situation_awareness: "#60a5fa",
+  social_media_intel: "#5eead4",
   hazard_assessment: "#f59e0b",
   dispatch_strategist: "#a78bfa",
   route_optimizer: "#34d399",

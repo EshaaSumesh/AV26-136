@@ -1,7 +1,7 @@
 "use client";
 
 import type { Mission } from "@/lib/types";
-import { Clock, MapPin, Truck, Users } from "lucide-react";
+import { Clock, MapPin, Users } from "lucide-react";
 
 interface Props {
   missions: Mission[];
@@ -10,80 +10,29 @@ interface Props {
 }
 
 interface StatusStyle {
-  dot: string;
-  glow: string;
-  pillBg: string;
-  pillBorder: string;
-  pillText: string;
+  /** colour of the status word (italic) and the leading dot. */
+  ink: string;
+  /** the editorial label, lower-case (we render via small-caps). */
   label: string;
 }
 
 function statusStyle(status: string): StatusStyle {
   switch (status) {
     case "negotiating":
-      return {
-        dot: "#facc15",
-        glow: "0 0 6px #facc15",
-        pillBg: "rgba(250,204,21,0.15)",
-        pillBorder: "rgba(250,204,21,0.4)",
-        pillText: "#fde68a",
-        label: "NEGOTIATING",
-      };
+      return { ink: "#A8741A", label: "negotiating" };
     case "accepted":
-      return {
-        dot: "#6BBD95",
-        glow: "0 0 6px #6BBD95",
-        pillBg: "rgba(107,189,149,0.15)",
-        pillBorder: "rgba(107,189,149,0.4)",
-        pillText: "#6BBD95",
-        label: "ACCEPTED",
-      };
+      return { ink: "var(--safety-org)", label: "accepted" };
     case "en_route":
-      return {
-        dot: "#6BBD95",
-        glow: "0 0 8px #6BBD95",
-        pillBg: "rgba(107,189,149,0.18)",
-        pillBorder: "rgba(107,189,149,0.45)",
-        pillText: "#A6D9BC",
-        label: "EN ROUTE",
-      };
+      return { ink: "var(--safety-org)", label: "en route" };
     case "on_site":
-      return {
-        dot: "#2E7D32",
-        glow: "0 0 8px #2E7D32",
-        pillBg: "rgba(46,125,50,0.15)",
-        pillBorder: "rgba(46,125,50,0.35)",
-        pillText: "#65d188",
-        label: "ON SITE",
-      };
+      return { ink: "#0F4D2C", label: "on site" };
     case "completed":
-      return {
-        dot: "#718096",
-        glow: "none",
-        pillBg: "rgba(113,128,150,0.15)",
-        pillBorder: "rgba(113,128,150,0.35)",
-        pillText: "#A0AEC0",
-        label: "RESOLVED",
-      };
+      return { ink: "var(--admin-muted)", label: "resolved" };
     case "cancelled":
     case "declined":
-      return {
-        dot: "#D32F2F",
-        glow: "0 0 6px #D32F2F",
-        pillBg: "rgba(211,47,47,0.15)",
-        pillBorder: "rgba(211,47,47,0.35)",
-        pillText: "#fb7185",
-        label: "DECLINED",
-      };
+      return { ink: "var(--danger)", label: "declined" };
     default:
-      return {
-        dot: "#718096",
-        glow: "none",
-        pillBg: "rgba(113,128,150,0.12)",
-        pillBorder: "rgba(113,128,150,0.3)",
-        pillText: "#A0AEC0",
-        label: status.toUpperCase().replace("_", " "),
-      };
+      return { ink: "var(--admin-muted)", label: status.replace("_", " ") };
   }
 }
 
@@ -94,37 +43,42 @@ export default function MissionsPanel({ missions, selected, onSelect }: Props) {
   const resolved = missions.length - active.length;
 
   return (
-    <div className="dark-scope flex h-full flex-col overflow-hidden border border-admin-rule bg-onyx">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-admin-rule bg-onyx-2 px-4 py-2.5">
-        <div className="flex items-center gap-2">
-          <Truck className="h-3.5 w-3.5 text-safety-org" />
-          <h3 className="font-mono text-[10px] uppercase tracking-[.14em] text-safety-org">
-            Active Missions
-          </h3>
-        </div>
-        <span className="font-mono text-[9px] uppercase tracking-[.1em] text-steel-light">
-          {active.length} Active · {resolved} Resolved
+    <div className="dark-scope flex h-full flex-col overflow-hidden bg-onyx">
+      <div className="flex items-baseline justify-between border-b border-admin-rule px-5 py-2.5">
+        <span
+          className="font-serif text-[11px] tracking-[.16em] text-admin-text"
+          style={{ fontVariantCaps: "small-caps" }}
+        >
+          missions ledger
+        </span>
+        <span
+          className="font-mono text-[10px] tracking-[.04em] text-admin-muted"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          {String(active.length).padStart(2, "0")} active ·{" "}
+          {String(resolved).padStart(2, "0")} resolved
         </span>
       </div>
 
-      {/* List */}
       <div className="scroll-thin flex-1 overflow-y-auto">
         {missions.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
-            <Truck className="mb-2 h-5 w-5 text-steel-light/50" />
-            <div className="font-mono text-[10px] uppercase tracking-[.12em] text-steel-light">
+            <div className="font-serif text-[10px] uppercase tracking-[.18em] text-admin-muted">
               No missions in progress
             </div>
-            <div className="mt-1 max-w-[200px] text-[11px] text-steel-light/70">
+            <div className="mt-2 max-w-[240px] font-serif italic text-[12px] leading-relaxed text-admin-muted">
               Run a demo scenario or wait for an incoming citizen report.
             </div>
           </div>
         ) : (
-          <ul>
-            {missions.map((m) => {
+          <ul className="px-5">
+            {missions.map((m, idx) => {
               const s = statusStyle(m.status);
               const isSel = selected === m.mission_id;
+              const headline =
+                m.disaster_type && m.disaster_type.length > 0
+                  ? `${m.disaster_type[0].toUpperCase()}${m.disaster_type.slice(1)}`
+                  : "Incident";
               return (
                 <li
                   key={m.mission_id}
@@ -132,92 +86,107 @@ export default function MissionsPanel({ missions, selected, onSelect }: Props) {
                     onSelect(m.mission_id === selected ? null : m.mission_id)
                   }
                   className={
-                    "cursor-pointer border-b border-admin-rule/60 px-4 py-3 transition " +
-                    (isSel
-                      ? "bg-safety-org/10"
-                      : "hover:bg-white/[0.025]")
+                    "cursor-pointer border-b border-admin-rule py-3 transition " +
+                    (isSel ? "bg-slate" : "hover:bg-slate/60") +
+                    (idx === 0 ? " pt-3" : "")
                   }
                 >
-                  {/* Top row: dot + name + ETA + pill */}
-                  <div className="flex items-center gap-2.5">
+                  {/* Headline row */}
+                  <div className="flex items-baseline gap-2">
                     <span
-                      className="h-1.5 w-1.5 shrink-0 rounded-full"
-                      style={{
-                        background: s.dot,
-                        boxShadow: s.glow,
-                      }}
-                    />
-                    <span className="flex-1 truncate text-[12px] text-admin-text">
-                      {m.disaster_type && m.disaster_type.length > 0
-                        ? `${m.disaster_type[0].toUpperCase()}${m.disaster_type.slice(1)}`
-                        : "Incident"}{" "}
-                      —{" "}
-                      <span className="text-admin-muted">
-                        {m.assigned_base_name ?? "Awaiting dispatch"}
-                      </span>
+                      className="font-mono text-[10px] tracking-[.04em] text-admin-muted"
+                      style={{ fontVariantNumeric: "tabular-nums" }}
+                    >
+                      {String(idx + 1).padStart(2, "0")}
                     </span>
-                    {m.route_eta_minutes ? (
-                      <span className="font-mono text-[9px] text-steel-light">
-                        ETA {m.route_eta_minutes.toFixed(0)}m
+                    <h4
+                      className="flex-1 font-serif text-[14px] font-semibold leading-tight text-admin-text"
+                      style={{ letterSpacing: "-0.005em" }}
+                    >
+                      {headline}
+                      <span className="font-serif italic font-normal text-admin-muted">
+                        {" "}
+                        — {m.assigned_base_name ?? "awaiting dispatch"}
                       </span>
-                    ) : null}
+                    </h4>
                     <span
-                      className="rounded-sharp border px-1.5 py-0.5 font-mono text-[8px] tracking-[.08em]"
+                      className="font-serif italic text-[11px]"
                       style={{
-                        background: s.pillBg,
-                        borderColor: s.pillBorder,
-                        color: s.pillText,
+                        color: s.ink,
+                        fontVariantCaps: "small-caps",
                       }}
                     >
                       {s.label}
                     </span>
                   </div>
 
-                  {/* Sub row: id, severity, coords */}
-                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 pl-4 font-mono text-[9px] uppercase tracking-[.08em] text-steel-light">
-                    <span>{m.mission_id.slice(-8)}</span>
-                    <span className={`severity-${m.severity}`}>
-                      SEV {m.severity}
+                  {/* Byline / metadata */}
+                  <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 pl-6 font-serif italic text-[11px] text-admin-muted">
+                    <span
+                      className="font-mono not-italic"
+                      style={{ fontVariantNumeric: "tabular-nums" }}
+                    >
+                      #{m.mission_id.slice(-8)}
                     </span>
+                    <span>severity {m.severity}</span>
                     <span className="inline-flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
-                      {m.incident_coordinates[0].toFixed(3)},{" "}
-                      {m.incident_coordinates[1].toFixed(3)}
+                      <span
+                        className="font-mono not-italic"
+                        style={{ fontVariantNumeric: "tabular-nums" }}
+                      >
+                        {m.incident_coordinates[0].toFixed(3)},{" "}
+                        {m.incident_coordinates[1].toFixed(3)}
+                      </span>
                     </span>
+                    {m.route_eta_minutes ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        ETA{" "}
+                        <span
+                          className="font-mono not-italic"
+                          style={{ fontVariantNumeric: "tabular-nums" }}
+                        >
+                          {m.route_eta_minutes.toFixed(0)}m
+                        </span>
+                      </span>
+                    ) : null}
                   </div>
 
-                  {/* Expanded — negotiation timeline */}
+                  {/* Expanded negotiation timeline (editorial pull-out) */}
                   {isSel && m.negotiation_history.length > 0 && (
-                    <div className="mt-3 space-y-1.5 border-t border-admin-rule/60 pt-3 pl-4">
-                      <div className="font-mono text-[9px] uppercase tracking-[.14em] text-safety-org">
-                        Negotiation Timeline
+                    <div className="mt-3 ml-6 border-l border-admin-rule pl-3">
+                      <div
+                        className="font-serif text-[10px] uppercase tracking-[.18em] text-admin-text"
+                        style={{ fontVariantCaps: "small-caps" }}
+                      >
+                        the negotiation
                       </div>
-                      <ul className="space-y-1.5">
+                      <ul className="mt-1.5 space-y-2">
                         {m.negotiation_history.map((n, i) => (
-                          <li
-                            key={i}
-                            className="border border-admin-rule/60 bg-white/[0.02] px-2 py-1.5"
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-mono text-[10px] font-medium text-admin-text">
+                          <li key={i}>
+                            <div className="flex items-baseline gap-2">
+                              <span className="font-serif text-[12px] font-semibold text-admin-text">
                                 {n.agent}
                               </span>
                               <span
-                                className={
-                                  "font-mono text-[8px] uppercase tracking-[.1em] " +
-                                  (n.action === "accepted"
-                                    ? "text-cleared"
-                                    : n.action === "declined"
-                                      ? "text-danger"
-                                      : "text-safety-org")
-                                }
+                                className="font-serif italic text-[11px]"
+                                style={{
+                                  color:
+                                    n.action === "accepted"
+                                      ? "var(--safety-org)"
+                                      : n.action === "declined"
+                                        ? "var(--danger)"
+                                        : "var(--admin-muted)",
+                                  fontVariantCaps: "small-caps",
+                                }}
                               >
-                                {n.action}
+                                — {n.action}
                               </span>
                             </div>
-                            <div className="mt-0.5 line-clamp-3 text-[10px] leading-relaxed text-admin-muted">
+                            <p className="mt-0.5 font-serif text-[12px] leading-snug text-admin-muted">
                               {n.reasoning}
-                            </div>
+                            </p>
                           </li>
                         ))}
                       </ul>
@@ -225,9 +194,9 @@ export default function MissionsPanel({ missions, selected, onSelect }: Props) {
                   )}
 
                   {isSel && (
-                    <div className="mt-2 flex items-center gap-3 pl-4 font-mono text-[9px] uppercase tracking-[.08em] text-steel-light">
+                    <div className="mt-2 flex items-center gap-4 pl-6 font-serif italic text-[11px] text-admin-muted">
                       {m.assigned_base_name && (
-                        <span className="inline-flex items-center gap-1 text-light-green">
+                        <span className="inline-flex items-center gap-1">
                           <Users className="h-3 w-3" />
                           {m.assigned_base_name}
                         </span>
@@ -235,7 +204,13 @@ export default function MissionsPanel({ missions, selected, onSelect }: Props) {
                       {m.route_eta_minutes && (
                         <span className="inline-flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {m.route_eta_minutes.toFixed(1)} min
+                          <span
+                            className="font-mono not-italic"
+                            style={{ fontVariantNumeric: "tabular-nums" }}
+                          >
+                            {m.route_eta_minutes.toFixed(1)}
+                          </span>{" "}
+                          min
                         </span>
                       )}
                     </div>

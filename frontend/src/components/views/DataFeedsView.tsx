@@ -47,11 +47,14 @@ export default function DataFeedsView() {
 
   return (
     <ViewShell
-      kicker="INTELLIGENCE"
+      kicker="Intelligence · Sources"
       title="Data Feeds"
       actions={
-        <span className="font-mono text-[10px] uppercase tracking-[.12em] text-steel-light">
-          {feeds?.length ?? 0} sources
+        <span
+          className="font-mono text-[10px] tracking-[.06em] text-admin-muted"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          {String(feeds?.length ?? 0).padStart(2, "0")} sources
         </span>
       }
     >
@@ -101,7 +104,7 @@ export default function DataFeedsView() {
                   className="border border-admin-rule bg-onyx-2 px-4 py-3 transition hover:border-safety-org/30"
                 >
                   <div className="flex items-start gap-3">
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-admin-rule bg-onyx text-safety-org">
+                    <span className="inline-flex h-8 w-8 items-center justify-center border border-admin-rule bg-onyx text-safety-org">
                       <Icon className="h-3.5 w-3.5" />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -119,7 +122,7 @@ export default function DataFeedsView() {
                         >
                           <span
                             className={
-                              "h-1.5 w-1.5 rounded-full " +
+                              "h-1.5 w-1.5 " +
                               (f.configured
                                 ? "bg-cleared live-pulse"
                                 : "bg-danger")

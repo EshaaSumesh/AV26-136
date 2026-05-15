@@ -10,11 +10,49 @@ export interface WsMessage {
   data: any;
 }
 
+export interface SocialSignal {
+  legitimacy_score?: number;
+  verdict?: "legitimate" | "suspicious" | "likely_false_alarm" | "insufficient_data";
+  axis_scores?: {
+    source_credibility?: number;
+    recency?: number;
+    geo_relevance?: number;
+    corroboration?: number;
+    media_evidence?: number;
+    sentiment_urgency?: number;
+  };
+  evidence_count?: { reddit?: number; rss?: number; gnews?: number; synthetic_tweets?: number };
+  raw?: string;
+  receivedAt: number;
+  incident_id?: string;
+}
+
+export interface RoutePayload {
+  mission_id?: string | null;
+  incident_id?: string | null;
+  path: Array<[number, number]>;
+  distance_km?: number | null;
+  eta_minutes?: number | null;
+  status?: string;
+  avoided_hazards?: Array<string | { id: string; label?: string }>;
+  fallback?: boolean;
+  candidates?: Array<{
+    label: string;
+    path: Array<[number, number]>;
+    distance_km?: number | null;
+    eta_minutes?: number | null;
+    status?: string;
+    avoided_hazards?: Array<string | { id: string; label?: string }>;
+  }>;
+  receivedAt: number;
+}
+
 export function useAuthorityWS() {
   const [connected, setConnected] = useState(false);
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [hazards, setHazards] = useState<any[]>([]);
-  const [routes, setRoutes] = useState<any[]>([]);
+  const [routes, setRoutes] = useState<RoutePayload[]>([]);
+  const [latestSocial, setLatestSocial] = useState<SocialSignal | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -36,11 +74,27 @@ export function useAuthorityWS() {
         try {
           const parsed: WsMessage = JSON.parse(msg.data);
           if (parsed.type === "agent_event") {
-            setEvents((prev) => [parsed.data, ...prev].slice(0, 200));
+            const ev = parsed.data as AgentEvent;
+            setEvents((prev) => [ev, ...prev].slice(0, 200));
+
+            // Pluck out social-legitimacy events for the radar.
+            if (ev.type === "social.signal.scored") {
+              setLatestSocial({
+                legitimacy_score: ev.payload?.legitimacy_score,
+                verdict: ev.payload?.verdict,
+                axis_scores: ev.payload?.axis_scores,
+                evidence_count: ev.payload?.evidence_count,
+                raw: ev.payload?.raw,
+                receivedAt: Date.now(),
+                incident_id: ev.payload?.incident_id,
+              });
+            }
           } else if (parsed.type === "new_hazard") {
             setHazards((prev) => [parsed.data, ...prev].slice(0, 50));
           } else if (parsed.type === "new_route") {
-            setRoutes((prev) => [parsed.data, ...prev].slice(0, 20));
+            setRoutes((prev) =>
+              [{ ...parsed.data, receivedAt: Date.now() }, ...prev].slice(0, 20),
+            );
           }
         } catch {
           // ignore malformed
@@ -56,7 +110,7 @@ export function useAuthorityWS() {
     };
   }, []);
 
-  return { connected, events, hazards, routes };
+  return { connected, events, hazards, routes, latestSocial };
 }
 
 export interface IncidentStageUpdate {
@@ -65,6 +119,7 @@ export interface IncidentStageUpdate {
   stage:
     | "supervisor"
     | "situation_awareness"
+    | "social_media_intel"
     | "hazard_assessment"
     | "communications"
     | "dispatch_strategist"

@@ -85,6 +85,19 @@ class EventBus:
     def event_count(self) -> int:
         return len(self._log)
 
+    async def publish_replay(self, event: Event) -> None:
+        """Re-broadcast a captured event WITHOUT re-running agent handlers.
+
+        Used by the demo replay endpoint: subscribers (situation /
+        hazard / dispatch / etc.) would re-trigger LLM calls which is
+        the very thing replay is designed to avoid. Broadcasters
+        (WebSocket fan-out, observability) DO run so the UI lights up
+        exactly as it did during the original recording.
+        """
+        self._log.append(event)
+        for handler in self._broadcasters:
+            asyncio.create_task(self._safe_call(handler, event))
+
 
 _bus: Optional[EventBus] = None
 

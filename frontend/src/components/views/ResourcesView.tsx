@@ -32,7 +32,7 @@ export default function ResourcesView() {
 
   return (
     <ViewShell
-      kicker="ADMIN"
+      kicker="Admin · Roster"
       title="Rescue Resources"
       actions={
         data && (
@@ -80,7 +80,7 @@ export default function ResourcesView() {
                   className="flex items-start gap-3 border border-admin-rule bg-onyx-2 px-4 py-3 transition hover:border-safety-org/30"
                 >
                   <span
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full"
+                    className="inline-flex h-9 w-9 items-center justify-center border border-admin-rule"
                     style={{
                       background: `${color}1f`,
                       border: `1px solid ${color}66`,

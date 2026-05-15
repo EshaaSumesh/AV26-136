@@ -62,6 +62,13 @@ class Mission:
     route_distance_km: Optional[float] = None
     route_eta_minutes: Optional[float] = None
     negotiation_history: List[NegotiationEntry] = field(default_factory=list)
+    # Dispatch-explainability fields. Captured by the supervisor after the
+    # Dispatch Strategist agent returns its decision, then surfaced in the
+    # mission detail drawer so operators can see why the chosen base was
+    # picked and which alternatives were considered+rejected. Empty
+    # defaults so old-style mission records remain compatible.
+    dispatch_reasoning: Optional[str] = None
+    dispatch_alternatives: List[Dict] = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     completed_at: Optional[str] = None
@@ -92,6 +99,8 @@ class Mission:
             "route_distance_km": self.route_distance_km,
             "route_eta_minutes": self.route_eta_minutes,
             "negotiation_history": [n.to_dict() for n in self.negotiation_history],
+            "dispatch_reasoning": self.dispatch_reasoning,
+            "dispatch_alternatives": list(self.dispatch_alternatives),
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "completed_at": self.completed_at,

@@ -27,6 +27,7 @@ from backend.agents.dispatch_strategist import create_dispatch_agent
 from backend.agents.route_optimizer import create_route_agent
 from backend.agents.communications import create_communications_agent
 from backend.agents.field_commander import propose_mission_to_commander
+from backend.agents.social_media_intel import create_social_intel_agent
 from backend.core.events import Event, EventType
 from backend.core.event_bus import get_bus
 from backend.core.metrics import Timer, get_metrics
@@ -40,6 +41,7 @@ _hazard_agent = None
 _dispatch_agent = None
 _route_agent = None
 _comms_agent = None
+_social_agent = None
 
 MAX_NEGOTIATION_ROUNDS = 3
 
@@ -96,6 +98,13 @@ def _get_comms():
     if _comms_agent is None:
         _comms_agent = create_communications_agent()
     return _comms_agent
+
+
+def _get_social():
+    global _social_agent
+    if _social_agent is None:
+        _social_agent = create_social_intel_agent()
+    return _social_agent
 
 
 async def _emit_reasoning(agent_name: str, thought: str, context: Optional[dict] = None):
@@ -250,6 +259,83 @@ def _extract_base_coords_from_dispatch(dispatch_text: str) -> Optional[list]:
     return None
 
 
+def _extract_dispatch_reasoning(dispatch_text: str) -> Optional[str]:
+    """Pull the chosen-base rationale out of the agent's structured output.
+
+    The agent's prompt tells it to emit a `reasoning:` line in the
+    DISPATCH DECISION block. We grab that line plus any continuation
+    lines until the next dashed key. Best-effort — if the format drifts
+    we return None and the UI degrades to "no reasoning recorded".
+    """
+    if not dispatch_text:
+        return None
+    # Match `reasoning:` (optionally indented or hyphen-prefixed) then
+    # everything until the next "- key:" line or the end of the block.
+    match = re.search(
+        r"reasoning\s*:\s*([\s\S]+?)(?:\n\s*-\s*\w+\s*:|\Z)",
+        dispatch_text,
+        re.IGNORECASE,
+    )
+    if not match:
+        return None
+    text = match.group(1).strip()
+    # Squash whitespace and clip to ~600 chars — enough for a paragraph,
+    # short enough that the operator drawer doesn't become a wall.
+    text = re.sub(r"\s+", " ", text)
+    return text[:600] or None
+
+
+def _extract_dispatch_alternatives(dispatch_text: str) -> list:
+    """Parse `alternatives_considered:` into a structured list.
+
+    The agent is asked for a free-form bullet list of bases it
+    rejected. We try a couple of common patterns:
+      - "Base XYZ — 14m ETA via flooded ORR, rejected"
+      - "* Whitefield FS: too far (23km)"
+      - "1) Indiranagar — closer but no ladder truck"
+    The output is a list of {name, reason} dicts. Anything we can't
+    cleanly split goes in as `{name: <whole bullet>, reason: ""}` —
+    still useful in the UI even without a clean split.
+    """
+    if not dispatch_text:
+        return []
+    match = re.search(
+        r"alternatives_considered\s*:\s*([\s\S]+?)(?:\n\s*-\s*\w+\s*:|\Z)",
+        dispatch_text,
+        re.IGNORECASE,
+    )
+    if not match:
+        return []
+    block = match.group(1).strip()
+    if not block:
+        return []
+
+    out = []
+    # Split on newlines first, fall back to semicolons for inlined lists.
+    lines = [ln.strip() for ln in re.split(r"[\r\n;]+", block) if ln.strip()]
+    for raw in lines:
+        # Strip leading bullet/number markers.
+        cleaned = re.sub(r"^(?:[-*•]|\d+[.)])\s*", "", raw).strip()
+        if not cleaned:
+            continue
+        # Try to split "Name — reason" / "Name: reason" / "Name (reason)".
+        name = cleaned
+        reason = ""
+        sep_match = re.match(r"^(.{2,80}?)\s*[—\-:–]\s*(.+)$", cleaned)
+        if sep_match:
+            name = sep_match.group(1).strip()
+            reason = sep_match.group(2).strip()
+        else:
+            paren_match = re.match(r"^(.+?)\s*\((.+?)\)\s*$", cleaned)
+            if paren_match:
+                name = paren_match.group(1).strip()
+                reason = paren_match.group(2).strip()
+        out.append({"name": name[:80], "reason": reason[:240]})
+        if len(out) >= 6:  # cap — six rejections is plenty for a panel
+            break
+    return out
+
+
 # --- Individual agent runners ---
 
 async def run_situation_assessment(incident: dict) -> dict:
@@ -260,6 +346,110 @@ async def run_situation_assessment(incident: dict) -> dict:
 async def run_hazard_assessment(situation_result: str, incident: dict) -> dict:
     await _emit_reasoning("hazard_assessment", "Evaluating hazard zone implications...")
     return await _run_agent(_get_hazard(), _build_hazard_prompt(situation_result, incident), "hazard_assessment")
+
+
+async def run_social_intel(incident: dict) -> dict:
+    """Run the Social-Media Intel agent and emit its legitimacy verdict.
+
+    Runs in parallel with situation_awareness. Failures are non-fatal: we
+    return an empty signal payload and let the rest of the pipeline carry on.
+    """
+    await _emit_reasoning(
+        "social_media_intel",
+        f"Pulling public chatter for '{incident.get('description', '')[:80]}...'",
+    )
+    try:
+        result = await _run_agent(
+            _get_social(),
+            _build_social_prompt(incident),
+            "social_media_intel",
+        )
+    except Exception as exc:
+        logger.warning(
+            "social_media_intel agent failed (%s) — continuing without social signal.",
+            type(exc).__name__,
+        )
+        result = {"result": f"social agent error: {exc}", "steps": []}
+
+    # Parse the agent's structured output and emit a SOCIAL_SIGNAL_SCORED
+    # event so the frontend radar can light up.
+    signal = _parse_social_intel(result.get("result", ""))
+    if signal:
+        try:
+            await get_bus().publish(Event(
+                type=EventType.SOCIAL_SIGNAL_SCORED,
+                payload={
+                    **_ctx_incident_meta(),
+                    **signal,
+                },
+                source_agent="social_media_intel",
+            ))
+        except Exception as exc:
+            logger.debug("social signal emit failed: %s", exc)
+    result["signal"] = signal
+    return result
+
+
+_SOCIAL_AXIS_KEYS = (
+    "source_credibility",
+    "recency",
+    "geo_relevance",
+    "corroboration",
+    "media_evidence",
+    "sentiment_urgency",
+)
+
+
+def _parse_social_intel(text: str) -> dict:
+    """Parse the SOCIAL_INTEL output into a dict the frontend can render.
+
+    The agent is asked to produce a fixed format, but LLM output drifts —
+    we extract everything we can with regexes and degrade gracefully.
+    """
+    if not isinstance(text, str) or not text:
+        return {}
+
+    out: dict = {}
+
+    m = re.search(r"legitimacy_score\s*[:=]\s*([0-9]+(?:\.[0-9]+)?)", text, re.I)
+    if m:
+        try:
+            out["legitimacy_score"] = max(0.0, min(100.0, float(m.group(1))))
+        except ValueError:
+            pass
+
+    m = re.search(
+        r"verdict\s*[:=]\s*(legitimate|suspicious|likely_false_alarm|insufficient_data)",
+        text, re.I,
+    )
+    if m:
+        out["verdict"] = m.group(1).lower()
+
+    axes: dict = {}
+    for axis in _SOCIAL_AXIS_KEYS:
+        # match e.g. "source_credibility: 78" possibly indented
+        ax = re.search(rf"{axis}\s*[:=]\s*([0-9]+(?:\.[0-9]+)?)", text, re.I)
+        if ax:
+            try:
+                axes[axis] = max(0.0, min(100.0, float(ax.group(1))))
+            except ValueError:
+                pass
+    if axes:
+        out["axis_scores"] = axes
+
+    # evidence_count: { reddit: 3, rss: 2, ... }
+    counts: dict = {}
+    for key in ("reddit", "rss", "gnews", "synthetic_tweets"):
+        cm = re.search(rf"{key}\s*[:=]\s*([0-9]+)", text, re.I)
+        if cm:
+            counts[key] = int(cm.group(1))
+    if counts:
+        out["evidence_count"] = counts
+
+    # Anything we got, plus the raw text for the drawer.
+    if out:
+        out["raw"] = text[:2000]
+    return out
 
 
 async def run_dispatch(situation_result: str, hazard_result: str, incident: dict) -> dict:
@@ -275,29 +465,60 @@ async def run_route_optimization(
 ) -> dict:
     """Compute the rescue route.
 
-    Primary path: run the route_optimizer ReAct agent (LLM + tool calls).
-    Fallback: if the LLM blows up (Gemini quota / network / timeout), call
-    the deterministic OSM router directly so the stage still completes,
-    populates `mission.route_*` fields, and emits the path to the bus.
+    Always runs the LLM agent for transparent reasoning AND the
+    deterministic OSM router for the actual coordinate path that the
+    frontend map renders. We then publish ROUTE_COMPUTED so the map
+    can draw the polyline, primary + alternates.
+
+    If the LLM step blows up (Gemini quota / network / timeout), the
+    deterministic router still runs and the stage completes cleanly.
     """
     await _emit_reasoning(
         "route_optimizer",
         "Computing candidate routes with hazard avoidance...",
     )
+
+    llm_result: dict = {"result": "", "steps": []}
+    llm_failure: Optional[Exception] = None
     try:
-        return await _run_agent(
+        llm_result = await _run_agent(
             _get_route(),
             _build_route_prompt(dispatch_result, incident),
             "route_optimizer",
         )
     except Exception as exc:
-        # Don't let a flaky / rate-limited LLM block the rescue.
+        llm_failure = exc
         logger.warning(
-            "route_optimizer LLM agent failed (%s) — falling back to "
-            "deterministic OSM router.",
+            "route_optimizer LLM agent failed (%s) — continuing with "
+            "deterministic OSM router only.",
             type(exc).__name__,
         )
-        return await _route_fallback_osm(incident, accepted_base, mission, exc)
+
+    # Deterministic computation — this is what we draw on the map.
+    deterministic = await _route_compute_deterministic(
+        incident, accepted_base, mission, llm_failure,
+    )
+
+    return {
+        **llm_result,
+        "deterministic": deterministic,
+        "fallback": llm_failure is not None,
+    }
+
+
+async def _route_compute_deterministic(
+    incident: dict,
+    accepted_base: Optional[dict],
+    mission,
+    failure_exc: Optional[Exception],
+) -> dict:
+    """Run the OSM router + multi-candidate routes for the map.
+
+    Always called by `run_route_optimization`, even on LLM success, so the
+    frontend map gets concrete coordinates to render. Populates the
+    mission's route fields and emits ROUTE_COMPUTED.
+    """
+    return await _route_fallback_osm(incident, accepted_base, mission, failure_exc)
 
 
 async def _route_fallback_osm(
@@ -306,13 +527,19 @@ async def _route_fallback_osm(
     mission,
     failure_exc: Exception,
 ) -> dict:
-    """Deterministic route computation when the LLM agent is unavailable.
+    """Deterministic multi-candidate route computation.
 
-    We pull live hazard zones from the in-memory store, run NetworkX over
-    the cached OSM graph, populate the mission's route fields, and emit a
-    transparent reasoning event so the operator knows the LLM was bypassed.
+    Uses the local OSM road graph + NetworkX. Always called by the route
+    stage so the frontend map gets concrete coordinates regardless of LLM
+    state. Computes:
+      • Primary  — avoids ALL hazard zones (blocked + penalty)
+      • Relaxed  — avoids only blocked zones
+      • Raw      — shortest path ignoring hazards
+
+    Populates mission.route_distance_km / route_eta_minutes from the primary
+    and emits a single ROUTE_COMPUTED event with all candidates.
     """
-    from backend.tools.osm_router import compute_osm_route as _osm_route_tool
+    from backend.tools.osm_router import compute_multi_candidate_routes as _multi_route_tool
     from backend.tools.hazard_db import get_hazard_zones as _get_hz
 
     incident_coords = incident.get("coordinates")
@@ -323,7 +550,7 @@ async def _route_fallback_osm(
         and isinstance(incident_coords, (list, tuple))
         and len(incident_coords) >= 2
     ):
-        msg = "Cannot run fallback: missing base or incident coordinates."
+        msg = "Cannot compute route: missing base or incident coordinates."
         await _emit_reasoning("route_optimizer", msg)
         return {"result": msg, "steps": [], "fallback": True}
 
@@ -344,55 +571,73 @@ async def _route_fallback_osm(
 
     await _emit_tool_call(
         "route_optimizer",
-        "compute_osm_route",
+        "compute_multi_candidate_routes",
         {
             "origin_lat": base_lat,
             "origin_lng": base_lng,
             "dest_lat": inc_lat,
             "dest_lng": inc_lng,
-            "hazard_zones": f"{len(hazard_zones)} zones",
-            "strategy": "all_hazards",
-            "_fallback_reason": type(failure_exc).__name__,
+            "hazard_zone_count": len(hazard_zones),
+            "_llm_succeeded": failure_exc is None,
         },
-        "deterministic OSM fallback",
+        "deterministic OSM (primary + alternates)",
     )
 
     try:
-        route_result = _osm_route_tool.invoke({
+        multi = _multi_route_tool.invoke({
             "origin_lat": float(base_lat),
             "origin_lng": float(base_lng),
             "dest_lat": float(inc_lat),
             "dest_lng": float(inc_lng),
             "hazard_zones": hazard_zones,
-            "strategy": "all_hazards",
         })
     except Exception as exc:
-        msg = f"Deterministic OSM router also failed: {type(exc).__name__}: {exc}"
+        msg = f"Deterministic OSM router failed: {type(exc).__name__}: {exc}"
         await _emit_reasoning("route_optimizer", msg)
         return {"result": msg, "steps": [], "fallback": True}
 
-    distance_km = route_result.get("distance_km")
-    eta_min = route_result.get("eta_minutes")
-    status = route_result.get("status", "ok")
-    path_len = len(route_result.get("path") or [])
-    avoided = route_result.get("avoided_hazards") or []
+    candidates = multi.get("routes") or multi.get("candidates") or []
+    if not candidates:
+        # `compute_multi_candidate_routes` returns under the `candidates` key
+        # in our tool; fall back to single result if shape differs.
+        if isinstance(multi, dict) and multi.get("path"):
+            candidates = [{
+                **multi,
+                "label": "Primary",
+            }]
 
-    # Populate mission fields so the supervisor's downstream emit works.
+    primary = candidates[0] if candidates else {}
+    distance_km = primary.get("distance_km")
+    eta_min = primary.get("eta_minutes")
+    status = primary.get("status", "ok")
+    avoided = primary.get("avoided_hazards") or []
+
     if mission is not None:
         if isinstance(distance_km, (int, float)):
             mission.route_distance_km = float(distance_km)
         if isinstance(eta_min, (int, float)):
             mission.route_eta_minutes = float(eta_min)
+        # Persist the polyline on the mission so non-WS clients (history,
+        # /missions/active reload) can render it without replaying events.
+        primary_path = primary.get("path") or []
+        if primary_path:
+            try:
+                mission.route_path = primary_path
+            except Exception:
+                pass
 
     summary = (
-        f"Fallback route ready: {distance_km} km, ~{eta_min} min, "
-        f"{path_len} waypoints"
+        f"Route ready: {distance_km} km, ~{eta_min} min via primary path"
+        + (f"; {len(candidates)} candidates computed" if len(candidates) > 1 else "")
         + (f", avoided {len(avoided)} hazard zone(s)" if avoided else "")
-        + ". (LLM agent skipped — Gemini quota / error.)"
+        + (
+            "  ·  LLM bypass active (Gemini error)."
+            if failure_exc is not None
+            else ""
+        )
     )
     await _emit_reasoning("route_optimizer", summary)
 
-    # Emit ROUTE_COMPUTED event so frontend map can draw the path.
     try:
         await get_bus().publish(Event(
             type=EventType.ROUTE_COMPUTED,
@@ -402,21 +647,32 @@ async def _route_fallback_osm(
                 "citizen_id": incident.get("citizen_id"),
                 "distance_km": distance_km,
                 "eta_minutes": eta_min,
-                "path": route_result.get("path"),
+                "path": primary.get("path"),
                 "status": status,
                 "avoided_hazards": avoided,
-                "fallback": True,
+                "candidates": [
+                    {
+                        "label": c.get("label", f"Route {i+1}"),
+                        "path": c.get("path") or [],
+                        "distance_km": c.get("distance_km"),
+                        "eta_minutes": c.get("eta_minutes"),
+                        "status": c.get("status", "ok"),
+                        "avoided_hazards": c.get("avoided_hazards") or [],
+                    }
+                    for i, c in enumerate(candidates)
+                ],
+                "fallback": failure_exc is not None,
             },
             source_agent="route_optimizer",
         ))
     except Exception as exc:
-        logger.debug("route fallback ROUTE_COMPUTED emit failed: %s", exc)
+        logger.debug("ROUTE_COMPUTED emit failed: %s", exc)
 
     return {
         "result": summary,
-        "steps": [{"type": "tool_call", "tool": "compute_osm_route", "args": {}}],
-        "fallback": True,
-        "raw": route_result,
+        "steps": [{"type": "tool_call", "tool": "compute_multi_candidate_routes", "args": {}}],
+        "fallback": failure_exc is not None,
+        "raw": multi,
     }
 
 
@@ -579,28 +835,78 @@ async def process_incident(incident: dict) -> dict:
 
 
 async def _process_incident_inner(incident: dict, results: dict, tracker) -> dict:
+    import asyncio as _asyncio
+
     await _emit_stage(
         incident,
         "supervisor",
         "running",
-        "Report received. Coordinating six agents to evaluate your incident.",
+        "Report received. Coordinating seven agents to evaluate your incident.",
     )
 
-    # Step 1: Situation Awareness
+    # Step 1: Situation Awareness + Social-Media Intel — IN PARALLEL.
+    #
+    # Situation reads the citizen's report, geocodes, and corroborates with
+    # weather/news. Social pulls public chatter (Reddit, RSS, GNews) and
+    # scores the legitimacy on six axes. The two run concurrently so the
+    # downstream Hazard agent has the union of both intel streams.
     await _emit_stage(
         incident,
         "situation_awareness",
         "running",
         "Reading your description, geocoding, and corroborating with weather, news, and disaster feeds.",
     )
-    situation = await run_situation_assessment(incident)
+    await _emit_stage(
+        incident,
+        "social_media_intel",
+        "running",
+        "Pulling Reddit + news + RSS chatter to score the report's social legitimacy.",
+    )
+
+    situation_task = _asyncio.create_task(run_situation_assessment(incident))
+    social_task = _asyncio.create_task(run_social_intel(incident))
+
+    # We need situation to proceed; social is best-effort.
+    situation, social = await _asyncio.gather(
+        situation_task, social_task, return_exceptions=True,
+    )
+
+    if isinstance(situation, Exception):
+        # Situation is critical — propagate.
+        raise situation
+
+    if isinstance(social, Exception):
+        logger.warning("social_intel task raised %s — continuing.", type(social).__name__)
+        social = {"result": "social agent error", "steps": [], "signal": {}}
+
     results["agent_outputs"]["situation"] = situation
+    results["agent_outputs"]["social"] = social
     situation_text = situation.get("result", "")
+
     await _emit_stage(
         incident,
         "situation_awareness",
         "done",
         "Situation classified.",
+    )
+
+    social_signal = social.get("signal") or {}
+    if social_signal:
+        score = social_signal.get("legitimacy_score")
+        verdict = social_signal.get("verdict", "?")
+        caption = (
+            f"Social legitimacy: {score:.0f}/100 ({verdict})"
+            if isinstance(score, (int, float))
+            else f"Social legitimacy: {verdict}"
+        )
+    else:
+        caption = "Social signals: insufficient data."
+    await _emit_stage(
+        incident,
+        "social_media_intel",
+        "done",
+        caption,
+        social_signal or None,
     )
 
     is_disaster = "is_disaster: true" in situation_text.lower() or \
@@ -689,6 +995,17 @@ async def _process_incident_inner(incident: dict, results: dict, tracker) -> dic
                 severity=severity_num,
                 incident_coordinates=incident.get("coordinates", [0, 0]),
             )
+
+            # Capture the dispatch agent's reasoning + considered
+            # alternatives onto the mission so the operator UI can
+            # display "why this base, not the others". Best-effort
+            # parsing — if the LLM output drifts we just leave them
+            # empty rather than failing the pipeline.
+            try:
+                mission.dispatch_reasoning = _extract_dispatch_reasoning(dispatch_text)
+                mission.dispatch_alternatives = _extract_dispatch_alternatives(dispatch_text)
+            except Exception as exc:
+                logger.debug("dispatch explainability parse failed: %s", exc)
 
             await _emit_reasoning("supervisor", f"Mission {mission.mission_id} created. Starting negotiation...")
             await _emit_stage(
@@ -834,6 +1151,31 @@ def _build_situation_prompt(incident: dict) -> str:
     if incident.get("is_sos"):
         parts.append("THIS IS AN SOS DISTRESS SIGNAL — treat as highest priority.")
     parts.append("\nPerform your full analysis using your tools, then provide your structured assessment.")
+    return "\n".join(parts)
+
+
+def _build_social_prompt(incident: dict) -> str:
+    parts = [
+        "Evaluate the social-trustworthiness of this incoming disaster report.",
+        "Pull related public chatter and score it on the six legitimacy axes.\n",
+    ]
+    if incident.get("description"):
+        parts.append(f"Citizen report: \"{incident['description']}\"")
+    if incident.get("disaster_type"):
+        parts.append(f"Reported disaster type: {incident['disaster_type']}")
+    if incident.get("location_text"):
+        parts.append(f"Location text: \"{incident['location_text']}\"")
+    if incident.get("coordinates"):
+        parts.append(f"Coordinates: {incident['coordinates']}")
+    if incident.get("severity_hint"):
+        parts.append(f"Citizen severity estimate: {incident['severity_hint']}/5")
+    if incident.get("is_sos"):
+        parts.append("This is an SOS distress signal.")
+    parts.append(
+        "\nUse search_reddit_posts, fetch_local_rss_feeds, search_disaster_news, "
+        "and (only if real signals are scarce) generate_realistic_tweets. "
+        "Then return the SOCIAL_INTEL block."
+    )
     return "\n".join(parts)
 
 

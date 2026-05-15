@@ -37,7 +37,7 @@ export default function ReportsView() {
 
   return (
     <ViewShell
-      kicker="ADMIN"
+      kicker="Admin · Filings"
       title="Citizen Reports"
       actions={
         data && (
@@ -67,7 +67,7 @@ export default function ReportsView() {
                   "cursor-pointer border-b border-admin-rule/60 px-4 py-2.5 transition " +
                   (active === c.citizen_id
                     ? "bg-safety-org/10"
-                    : "hover:bg-white/[0.025]")
+                    : "hover:bg-onyx-2")
                 }
               >
                 <div className="flex items-center gap-2">
@@ -114,7 +114,7 @@ function CitizenDetail({ citizen }: { citizen: CitizenSummary }) {
   return (
     <div>
       <div className="mb-4 flex items-center gap-3">
-        <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-admin-rule bg-onyx-2 text-safety-org">
+        <span className="inline-flex h-10 w-10 items-center justify-center border border-admin-rule bg-onyx-2 text-safety-org">
           <User2 className="h-4 w-4" />
         </span>
         <div>

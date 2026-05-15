@@ -1,14 +1,22 @@
 [
   {
     "id": "base_001",
-    "name": "NDRF Battalion HQ Yelahanka",
+    "name": "NDRF 4th Battalion HQ Yelahanka",
     "coordinates": [13.1007, 77.5963],
     "teams_available": 4,
     "type": "ndrf",
-    "specialization": ["flood", "earthquake", "building_collapse"]
+    "specialization": ["flood", "earthquake", "building_collapse", "landslide"]
   },
   {
     "id": "base_002",
+    "name": "NDRF Detachment Whitefield",
+    "coordinates": [12.9698, 77.7500],
+    "teams_available": 2,
+    "type": "ndrf",
+    "specialization": ["flood", "building_collapse", "earthquake"]
+  },
+  {
+    "id": "base_003",
     "name": "Fire Station Koramangala",
     "coordinates": [12.9352, 77.6245],
     "teams_available": 3,
@@ -16,15 +24,47 @@
     "specialization": ["fire", "building_collapse", "road_block"]
   },
   {
-    "id": "base_003",
+    "id": "base_004",
+    "name": "Fire Station JP Nagar",
+    "coordinates": [12.9063, 77.5857],
+    "teams_available": 2,
+    "type": "fire",
+    "specialization": ["fire", "building_collapse"]
+  },
+  {
+    "id": "base_005",
+    "name": "Fire Station Rajajinagar",
+    "coordinates": [12.9893, 77.5532],
+    "teams_available": 2,
+    "type": "fire",
+    "specialization": ["fire", "building_collapse", "tree_fall"]
+  },
+  {
+    "id": "base_006",
+    "name": "Fire Station Marathahalli",
+    "coordinates": [12.9568, 77.7011],
+    "teams_available": 3,
+    "type": "fire",
+    "specialization": ["fire", "vehicle_accident", "road_block"]
+  },
+  {
+    "id": "base_007",
     "name": "Police Emergency HQ Shivajinagar",
     "coordinates": [12.9857, 77.6056],
     "teams_available": 5,
     "type": "police",
-    "specialization": ["road_block", "flood", "other"]
+    "specialization": ["road_block", "flood", "other", "vehicle_accident"]
   },
   {
-    "id": "base_004",
+    "id": "base_008",
+    "name": "Police Control Room Madiwala",
+    "coordinates": [12.9176, 77.6224],
+    "teams_available": 4,
+    "type": "police",
+    "specialization": ["road_block", "vehicle_accident", "other"]
+  },
+  {
+    "id": "base_009",
     "name": "SDRF Station Hebbal",
     "coordinates": [13.0358, 77.5970],
     "teams_available": 3,
@@ -32,11 +72,67 @@
     "specialization": ["flood", "landslide", "cyclone"]
   },
   {
-    "id": "base_005",
-    "name": "Fire Station JP Nagar",
-    "coordinates": [12.9063, 77.5857],
+    "id": "base_010",
+    "name": "Manipal Hospital Old Airport Road",
+    "coordinates": [12.9591, 77.6499],
+    "teams_available": 4,
+    "type": "medical",
+    "specialization": ["medical", "vehicle_accident", "building_collapse"]
+  },
+  {
+    "id": "base_011",
+    "name": "Apollo Hospital Bannerghatta Road",
+    "coordinates": [12.8988, 77.5970],
+    "teams_available": 3,
+    "type": "medical",
+    "specialization": ["medical", "vehicle_accident"]
+  },
+  {
+    "id": "base_012",
+    "name": "Victoria Hospital (Govt) Fort",
+    "coordinates": [12.9636, 77.5760],
+    "teams_available": 3,
+    "type": "medical",
+    "specialization": ["medical", "fire", "building_collapse"]
+  },
+  {
+    "id": "base_013",
+    "name": "Madras Sappers (Indian Army Engineers) MEG Centre",
+    "coordinates": [12.9750, 77.5959],
     "teams_available": 2,
-    "type": "fire",
-    "specialization": ["fire", "building_collapse"]
+    "type": "army_engineers",
+    "specialization": ["building_collapse", "earthquake", "landslide", "flood"]
+  },
+  {
+    "id": "base_014",
+    "name": "BBMP Disaster Response Cell Mayo Hall",
+    "coordinates": [12.9728, 77.6094],
+    "teams_available": 3,
+    "type": "civic_rescue",
+    "specialization": ["tree_fall", "road_block", "flood", "building_collapse"]
+  },
+  {
+    "id": "base_015",
+    "name": "BWSSB Flood Response Crew Cubbon Park",
+    "coordinates": [12.9763, 77.5929],
+    "teams_available": 2,
+    "type": "utility_flood",
+    "specialization": ["flood", "drainage_overflow"]
+  },
+  {
+    "id": "base_016",
+    "name": "K9 Search & Rescue Unit (CISF) HAL",
+    "coordinates": [12.9499, 77.6680],
+    "teams_available": 1,
+    "type": "k9_sar",
+    "specialization": ["building_collapse", "earthquake", "missing_person"]
+  },
+  {
+    "id": "base_017",
+    "name": "Traffic Police Quick-Clearance Fleet ORR",
+    "coordinates": [12.9397, 77.6940],
+    "teams_available": 4,
+    "type": "traffic_clearance",
+    "specialization": ["vehicle_accident", "road_block", "tree_fall"]
   }
 ]

@@ -59,17 +59,30 @@ async def lifespan(app: FastAPI):
                 "type": "new_hazard",
                 "data": event.payload.get("zone", {}),
             })
-        if event.type == EventType.ROUTE_COMPUTED and event.payload.get("found"):
-            await ws.broadcast_authority({
-                "type": "new_route",
-                "data": {
-                    "incident_id": event.payload.get("incident_id"),
-                    "path": event.payload.get("path"),
-                    "distance_km": event.payload.get("distance_km"),
-                    "eta_minutes": event.payload.get("eta_minutes"),
-                    "avoided_hazards": event.payload.get("avoided_hazards", []),
-                },
-            })
+        if event.type == EventType.ROUTE_COMPUTED:
+            # Both the LLM agent and the deterministic OSM fallback publish
+            # this event. Accept any with a `path` attached so the map can
+            # render it; treat status="ok" or legacy found=True as valid.
+            payload = event.payload or {}
+            path = payload.get("path") or []
+            ok = (
+                payload.get("status") == "ok"
+                or payload.get("found")
+                or len(path) >= 2
+            )
+            if ok:
+                await ws.broadcast_authority({
+                    "type": "new_route",
+                    "data": {
+                        "mission_id": payload.get("mission_id"),
+                        "incident_id": payload.get("incident_id"),
+                        "path": path,
+                        "distance_km": payload.get("distance_km"),
+                        "eta_minutes": payload.get("eta_minutes"),
+                        "avoided_hazards": payload.get("avoided_hazards", []),
+                        "fallback": payload.get("fallback", False),
+                    },
+                })
 
     bus.add_broadcaster(_authority_broadcast)
 
@@ -97,6 +110,7 @@ async def lifespan(app: FastAPI):
         EventType.MISSION_COUNTER_PROPOSED,
         EventType.MISSION_COMPLETED,
         EventType.ROUTE_COMPUTED,
+        EventType.SOCIAL_SIGNAL_SCORED,
     }
 
     async def _citizen_incident_stream(event: Event) -> None:
@@ -187,9 +201,10 @@ async def health():
 
 def _list_tools() -> list[str]:
     from backend.tools import weather, tomtom, osm_router, gdacs, gnews, usgs
-    from backend.tools import geocoder, hazard_db, resource_db, broadcast
+    from backend.tools import geocoder, hazard_db, resource_db, broadcast, vision, social_signals
     tools = []
-    for mod in [weather, tomtom, osm_router, gdacs, gnews, usgs, geocoder, hazard_db, resource_db, broadcast]:
+    for mod in [weather, tomtom, osm_router, gdacs, gnews, usgs, geocoder, hazard_db,
+                resource_db, broadcast, vision, social_signals]:
         for name in dir(mod):
             obj = getattr(mod, name)
             if hasattr(obj, "name") and hasattr(obj, "description"):

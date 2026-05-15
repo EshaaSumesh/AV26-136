@@ -35,28 +35,38 @@ export default function HazardsView({ hazards }: { hazards: HazardZone[] }) {
 
   return (
     <ViewShell
-      kicker="INTELLIGENCE"
+      kicker="Intelligence · Hazards"
       title="Hazard Zones"
       actions={
-        <span className="font-mono text-[10px] uppercase tracking-[.12em] text-steel-light">
-          {hazards.length} active
+        <span
+          className="font-mono text-[10px] tracking-[.06em] text-admin-muted"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          {String(hazards.length).padStart(2, "0")} active
         </span>
       }
     >
-      <div className="grid grid-cols-2 gap-2 border-b border-admin-rule p-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 border-b border-admin-rule bg-onyx-2 md:grid-cols-4">
         {(["critical", "high", "medium", "low"] as const).map((sev) => (
           <div
             key={sev}
-            className="border border-admin-rule bg-onyx-2 px-3 py-2"
+            className="border-r border-admin-rule px-5 py-3 last:border-r-0"
           >
-            <div className="font-mono text-[9px] uppercase tracking-[.14em] text-steel-light">
+            <div className="font-serif text-[10px] uppercase tracking-[.18em] text-admin-muted">
               {sev}
             </div>
             <div
-              className="mt-1 font-serif text-[22px] leading-none"
-              style={{ color: SEV_COLOR[sev] }}
+              className="mt-1.5 font-mono text-[28px] leading-none"
+              style={{
+                color: SEV_COLOR[sev],
+                fontVariantNumeric: "tabular-nums",
+                letterSpacing: "-0.01em",
+              }}
             >
-              {counts[sev] ?? 0}
+              {String(counts[sev] ?? 0).padStart(2, "0")}
+            </div>
+            <div className="mt-1 font-serif italic text-[11px] text-admin-muted">
+              {counts[sev] ?? 0 > 0 ? "active zones" : "no zones"}
             </div>
           </div>
         ))}
@@ -77,16 +87,18 @@ export default function HazardsView({ hazards }: { hazards: HazardZone[] }) {
             return (
               <li
                 key={h.id ?? `hazard_${idx}`}
-                className="border-b border-admin-rule/60 px-5 py-3 transition hover:bg-white/[0.02]"
+                className="border-b border-admin-rule px-6 py-4 transition hover:bg-onyx-2"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-baseline gap-3">
                   <span
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-full"
-                    style={{
-                      background: `${sevColor}22`,
-                      border: `1px solid ${sevColor}66`,
-                      color: sevColor,
-                    }}
+                    className="font-mono text-[10px] tracking-[.04em] text-admin-muted"
+                    style={{ fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {String(idx + 1).padStart(2, "0")}
+                  </span>
+                  <span
+                    className="self-center"
+                    style={{ color: sevColor }}
                   >
                     {h.category === "fire" ? (
                       <Flame className="h-3.5 w-3.5" />
@@ -96,42 +108,55 @@ export default function HazardsView({ hazards }: { hazards: HazardZone[] }) {
                       <AlertTriangle className="h-3.5 w-3.5" />
                     )}
                   </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[13px] text-admin-text">
-                        {titleCase(h.category, "Hazard")}
-                      </span>
-                      <span className="font-mono text-[9px] text-steel-light">
-                        · {shortId(h.id)}
-                      </span>
-                    </div>
-                    <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[.08em] text-steel-light">
-                      {Number.isFinite(lat) && Number.isFinite(lng)
-                        ? `${lat.toFixed(4)}, ${lng.toFixed(4)}`
-                        : "coords unavailable"}
-                      {Number.isFinite(radius)
-                        ? ` · ${radius.toFixed(2)} km radius`
-                        : ""}
-                    </div>
-                  </div>
+                  <h3
+                    className="flex-1 font-serif text-[15px] font-semibold leading-tight text-admin-text"
+                    style={{ letterSpacing: "-0.005em" }}
+                  >
+                    {titleCase(h.category, "Hazard")}
+                    <span className="font-serif italic font-normal text-admin-muted">
+                      {" "}
+                      — zone #{shortId(h.id)}
+                    </span>
+                  </h3>
                   <span
-                    className="rounded-sharp border px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[.12em]"
+                    className="font-serif italic text-[11px]"
                     style={{
                       color: sevColor,
-                      borderColor: `${sevColor}66`,
-                      background: `${sevColor}1a`,
+                      fontVariantCaps: "small-caps",
                     }}
                   >
                     {h.severity ?? "unknown"}
                   </span>
                   {h.blocked && (
-                    <span className="rounded-sharp border border-danger/40 bg-danger/15 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[.12em] text-danger">
-                      Blocked
+                    <span className="font-serif italic text-[11px] text-danger">
+                      blocked
                     </span>
                   )}
                 </div>
+                <div className="mt-1 pl-12 font-serif italic text-[11px] text-admin-muted">
+                  <span
+                    className="font-mono not-italic"
+                    style={{ fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {Number.isFinite(lat) && Number.isFinite(lng)
+                      ? `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+                      : "coords unavailable"}
+                  </span>
+                  {Number.isFinite(radius) && (
+                    <>
+                      {" · "}
+                      <span
+                        className="font-mono not-italic"
+                        style={{ fontVariantNumeric: "tabular-nums" }}
+                      >
+                        {radius.toFixed(2)}
+                      </span>{" "}
+                      km radius
+                    </>
+                  )}
+                </div>
                 {h.reasoning && (
-                  <p className="mt-2 max-w-[640px] text-[11px] leading-relaxed text-admin-muted">
+                  <p className="mt-2 max-w-[680px] pl-12 font-serif text-[13px] leading-relaxed text-admin-text">
                     {h.reasoning}
                   </p>
                 )}

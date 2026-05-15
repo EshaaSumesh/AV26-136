@@ -38,6 +38,9 @@ class EventType(str, Enum):
     # Communications
     PUBLIC_ALERT_BROADCAST = "public.alert.broadcast"
 
+    # Social intel
+    SOCIAL_SIGNAL_SCORED = "social.signal.scored"
+
     # Agent observability
     AGENT_REASONING = "agent.reasoning"
     AGENT_TOOL_CALL = "agent.tool_call"

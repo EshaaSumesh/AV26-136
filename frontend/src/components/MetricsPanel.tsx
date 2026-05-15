@@ -123,7 +123,7 @@ export default function MetricsPanel() {
                     <span className="w-32 shrink-0 truncate text-admin-text">
                       {name}
                     </span>
-                    <div className="relative h-1.5 flex-1 overflow-hidden bg-white/[0.05]">
+                    <div className="relative h-1.5 flex-1 overflow-hidden bg-slate">
                       <div
                         className="absolute inset-y-0 left-0 bg-safety-org/70"
                         style={{ width: `${pct}%` }}
@@ -153,7 +153,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border border-admin-rule bg-white/[0.02]">
+    <section className="border border-admin-rule bg-onyx-2">
       <header className="flex items-center gap-1.5 border-b border-admin-rule/60 bg-onyx-2 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[.14em] text-steel-light">
         {icon}
         {title}
@@ -217,7 +217,7 @@ function Bar({
 }) {
   const pct = Math.min(100, (value / max) * 100);
   return (
-    <div className="h-1 w-full overflow-hidden bg-white/[0.05]">
+    <div className="h-1 w-full overflow-hidden bg-slate">
       <div
         className="h-full"
         style={{ width: `${pct}%`, background: color, opacity: 0.85 }}

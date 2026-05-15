@@ -1,0 +1,2562 @@
+{
+  "scenario_id": "bengaluru_2026_hailstorm",
+  "run_id": "synth_hailstorm_v1",
+  "recorded_at": "2026-04-30T18:42:00+00:00",
+  "duration_ms": 86000,
+  "event_count": 114,
+  "events": [
+    {
+      "offset_ms": 0,
+      "event": {
+        "id": "evt_a383863ce0ae",
+        "type": "citizen.report.submitted",
+        "payload": {
+          "citizen_id": "demo_blr26_orr_pileup",
+          "disaster_type": "vehicle_accident",
+          "description": "Massive hail just hit Outer Ring Road near Marathahalli. Hailstones the size of golf balls. Multiple cars have skidded and crashed into each other in the Bellandur flyover stretch. Windshields completely smashed. People are out of cars trying to take shelter.",
+          "coordinates": [
+            12.9569,
+            77.7011
+          ],
+          "severity_hint": 5,
+          "demo_run_id": "synth_hailstorm_v1",
+          "demo_step": 1,
+          "image_id": "img_b5f4e0c707ce",
+          "image_url": "/uploads/img_b5f4e0c707ce.jpg"
+        },
+        "source_agent": "demo.demo_blr26_orr_pileup",
+        "timestamp": "2026-04-30T18:42:00+00:00"
+      }
+    },
+    {
+      "offset_ms": 50,
+      "event": {
+        "id": "evt_ce958aff316d",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "situation_awareness",
+          "thought": "Analyzing report: 'Massive hail just hit Outer Ring Road near Marathahalli. Hailstones the size of golf balls. Multiple\u2026'",
+          "context": {},
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:00.050000+00:00"
+      }
+    },
+    {
+      "offset_ms": 50,
+      "event": {
+        "id": "evt_de3a714d5d17",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "social_media_intel",
+          "thought": "Pulling public chatter for 'Massive hail just hit Outer Ring Road near Marathahalli. Hailstones the size of \u2026'",
+          "context": {},
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:00.050000+00:00"
+      }
+    },
+    {
+      "offset_ms": 1500,
+      "event": {
+        "id": "evt_cce971372b7c",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "situation_awareness",
+          "tool": "get_weather",
+          "args": {
+            "lat": 12.9569,
+            "lng": 77.7011
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:01.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 1600,
+      "event": {
+        "id": "evt_4ccf36bd0da7",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "situation_awareness",
+          "tool": "search_disaster_news",
+          "args": {
+            "query": "vehicle_accident Bengaluru hail"
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:01.600000+00:00"
+      }
+    },
+    {
+      "offset_ms": 1700,
+      "event": {
+        "id": "evt_12a7273cbb55",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "situation_awareness",
+          "tool": "get_gdacs_alerts",
+          "args": {
+            "lat": 12.9569,
+            "lng": 77.7011,
+            "radius_km": 5.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:01.700000+00:00"
+      }
+    },
+    {
+      "offset_ms": 1800,
+      "event": {
+        "id": "evt_fa703c4124c9",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "situation_awareness",
+          "tool": "get_recent_earthquakes",
+          "args": {
+            "lat": 12.9569,
+            "lng": 77.7011,
+            "radius_km": 5.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:01.800000+00:00"
+      }
+    },
+    {
+      "offset_ms": 1900,
+      "event": {
+        "id": "evt_02dd3eaa315a",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "situation_awareness",
+          "tool": "get_hazard_zones",
+          "args": {
+            "lat": 12.9569,
+            "lng": 77.7011,
+            "radius_km": 1.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:01.900000+00:00"
+      }
+    },
+    {
+      "offset_ms": 3000,
+      "event": {
+        "id": "evt_c5453e9e7d97",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "social_media_intel",
+          "tool": "search_reddit_posts",
+          "args": {
+            "query": "hail Outer Ring Road \u00b7 Bellandur flyover Bengaluru",
+            "max_results": 8.0,
+            "hours_back": 24.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:03+00:00"
+      }
+    },
+    {
+      "offset_ms": 3100,
+      "event": {
+        "id": "evt_a353729f32a3",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "social_media_intel",
+          "tool": "fetch_local_rss_feeds",
+          "args": {
+            "keyword": "hail"
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:03.100000+00:00"
+      }
+    },
+    {
+      "offset_ms": 3200,
+      "event": {
+        "id": "evt_604cec4af424",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "social_media_intel",
+          "tool": "search_disaster_news",
+          "args": {
+            "query": "hail vehicle_accident Bengaluru",
+            "max_results": 5.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:03.200000+00:00"
+      }
+    },
+    {
+      "offset_ms": 3300,
+      "event": {
+        "id": "evt_f1fa2da46674",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "social_media_intel",
+          "tool": "generate_realistic_tweets",
+          "args": {
+            "incident_summary": "Massive hail just hit Outer Ring Road near Marathahalli",
+            "location": "Bengaluru",
+            "count": 4.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:03.300000+00:00"
+      }
+    },
+    {
+      "offset_ms": 4500,
+      "event": {
+        "id": "evt_a7865965c6fd",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "situation_awareness",
+          "thought": "ASSESSMENT:\n- is_disaster: true\n- disaster_type: vehicle_accident\n- severity: 5\n- confidence: 0.92\n- coordinates: [12.9569, 77.7011]\n- location_name: Outer Ring Road \u00b7 Bellandur flyover, near Marathahalli\n- reasoning: Citizen description corroborated by IMD severe-storm warning over Bengaluru urban district and matching reports on GNews + r/bangalore. High confidence.",
+          "context": {},
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:04.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 4600,
+      "event": {
+        "id": "evt_64a64977901c",
+        "type": "situation.assessed",
+        "payload": {
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup",
+          "is_disaster": true,
+          "disaster_type": "vehicle_accident",
+          "severity": 5,
+          "confidence": 0.92,
+          "coordinates": [
+            12.9569,
+            77.7011
+          ],
+          "location_name": "Outer Ring Road \u00b7 Bellandur flyover, near Marathahalli"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:04.600000+00:00"
+      }
+    },
+    {
+      "offset_ms": 5500,
+      "event": {
+        "id": "evt_142707c02410",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "social_media_intel",
+          "thought": "SOCIAL_INTEL:\n- legitimacy_score: 84.0\n- verdict: verified\n- evidence_count: {\"reddit\": 3, \"rss\": 2, \"gnews\": 5, \"synthetic_tweets\": 4}",
+          "context": {},
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:05.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 5600,
+      "event": {
+        "id": "evt_6c729cf0cf92",
+        "type": "social.signal.scored",
+        "payload": {
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup",
+          "legitimacy_score": 84.0,
+          "verdict": "verified",
+          "axis_scores": {
+            "source_credibility": 90.0,
+            "recency": 95.0,
+            "geo_relevance": 90.0,
+            "corroboration": 80.0,
+            "media_evidence": 75.0,
+            "sentiment_urgency": 90.0
+          },
+          "evidence_count": {
+            "reddit": 3,
+            "rss": 2,
+            "gnews": 5,
+            "synthetic_tweets": 4
+          },
+          "raw": "SOCIAL_INTEL:\n- legitimacy_score: 84.0\n- verdict: verified\n- axis_scores:\n    source_credibility: 90.0\n    recency: 95.0\n    geo_relevance: 90.0\n    corroboration: 80.0\n    media_evidence: 75.0\n    sentiment_urgency: 90.0\n- evidence_count: {\"reddit\": 3, \"rss\": 2, \"gnews\": 5, \"synthetic_tweets\": 4}\n- top_signals:\n    - platform: Times of India\n      url: https://timesofindia.indiatimes.com/city/bengaluru/hail-storm-orr-pileup\n    - platform: Deccan Herald\n      url: https://www.deccanherald.com/india/karnataka/bengaluru-hailstorm-april-2026\n    - platform: r/bangalore\n      url: https://www.reddit.com/r/bangalore/comments/hailstorm_now\n"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:05.600000+00:00"
+      }
+    },
+    {
+      "offset_ms": 6500,
+      "event": {
+        "id": "evt_197b57942121",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "hazard_assessment",
+          "thought": "Establishing hazard polygon around Outer Ring Road \u00b7 Bellandur flyover, near Marathahalli: radius 0.6km, severity critical, blocked=True. This hazard will be honored by the route optimizer when planning incoming rescue paths.",
+          "context": {},
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "hazard_assessment",
+        "timestamp": "2026-04-30T18:42:06.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 6700,
+      "event": {
+        "id": "evt_c5cb413b9776",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "hazard_assessment",
+          "tool": "create_hazard_zone",
+          "args": {
+            "disaster_type": "vehicle_accident",
+            "center_lat": 12.9569,
+            "center_lng": 77.7011,
+            "radius_km": 0.6,
+            "severity": "critical",
+            "label": "Multi-vehicle pile-up on ORR Bellandur flyover, hail damage",
+            "blocked": true
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "hazard_assessment",
+        "timestamp": "2026-04-30T18:42:06.700000+00:00"
+      }
+    },
+    {
+      "offset_ms": 6800,
+      "event": {
+        "id": "evt_607c5e74656d",
+        "type": "hazard.zone.proposed",
+        "payload": {
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup",
+          "zone": {
+            "id": "hz_da5dd93b",
+            "type": "vehicle_accident",
+            "label": "Multi-vehicle pile-up on ORR Bellandur flyover, hail damage",
+            "geometry": {
+              "type": "circle",
+              "center": [
+                12.9569,
+                77.7011
+              ],
+              "radius_km": 0.6
+            },
+            "severity": "critical",
+            "blocked": true,
+            "color": "#ff0000"
+          }
+        },
+        "source_agent": "hazard_assessment",
+        "timestamp": "2026-04-30T18:42:06.800000+00:00"
+      }
+    },
+    {
+      "offset_ms": 7500,
+      "event": {
+        "id": "evt_e924c06407d7",
+        "type": "hazard.zone.confirmed",
+        "payload": {
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup",
+          "zone": {
+            "id": "hz_da5dd93b",
+            "type": "vehicle_accident",
+            "label": "Multi-vehicle pile-up on ORR Bellandur flyover, hail damage",
+            "geometry": {
+              "type": "circle",
+              "center": [
+                12.9569,
+                77.7011
+              ],
+              "radius_km": 0.6
+            },
+            "severity": "critical",
+            "blocked": true,
+            "color": "#ff0000"
+          }
+        },
+        "source_agent": "hazard_assessment",
+        "timestamp": "2026-04-30T18:42:07.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 9000,
+      "event": {
+        "id": "evt_87f26a2e715f",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "dispatch_strategist",
+          "thought": "Evaluating bases for vehicle_accident severity 5 at Outer Ring Road \u00b7 Bellandur flyover, near Marathahalli. Querying nearby bases & checking specialism match.",
+          "context": {},
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "dispatch_strategist",
+        "timestamp": "2026-04-30T18:42:09+00:00"
+      }
+    },
+    {
+      "offset_ms": 9300,
+      "event": {
+        "id": "evt_2f6a2937be41",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "dispatch_strategist",
+          "tool": "get_rescue_bases",
+          "args": {
+            "disaster_type": "vehicle_accident",
+            "near_lat": 12.9569,
+            "near_lng": 77.7011
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "dispatch_strategist",
+        "timestamp": "2026-04-30T18:42:09.300000+00:00"
+      }
+    },
+    {
+      "offset_ms": 9500,
+      "event": {
+        "id": "evt_5966a8340ff3",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "dispatch_strategist",
+          "tool": "get_hazard_zones",
+          "args": {
+            "lat": 12.9569,
+            "lng": 77.7011,
+            "radius_km": 5.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "dispatch_strategist",
+        "timestamp": "2026-04-30T18:42:09.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 10500,
+      "event": {
+        "id": "evt_890a845f6450",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "dispatch_strategist",
+          "tool": "get_tomtom_route",
+          "args": {
+            "origin_lat": 12.9568,
+            "origin_lng": 77.7011,
+            "dest_lat": 12.9569,
+            "dest_lng": 77.7011
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "dispatch_strategist",
+        "timestamp": "2026-04-30T18:42:10.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 12000,
+      "event": {
+        "id": "evt_b0c42eca8e75",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "dispatch_strategist",
+          "thought": "DISPATCH DECISION:\n- chosen_base_id: base_006\n- chosen_base_name: Fire Station Marathahalli\n- base_coordinates: [12.9568, 77.7011]\n- disaster_type: vehicle_accident\n- estimated_eta_minutes: ~estimating~\n- reasoning: Fire Station Marathahalli provides the strongest specialism match for vehicle_accident with available teams and the shortest hazard-aware ETA after considering active hazard zones.\n- considered_alternatives:\n  - Traffic Police Quick-Clearance Fleet ORR: Closer for traffic clearance but lacks fire+rescue capability needed for mangled vehicles with possible fuel leaks.\n  - Manipal Hospital Old Airport Road: Strong medical fit but 7.4km away and the situation calls for fire-rescue extraction first; ambulance is being staged.\n",
+          "context": {},
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "dispatch_strategist",
+        "timestamp": "2026-04-30T18:42:12+00:00"
+      }
+    },
+    {
+      "offset_ms": 12100,
+      "event": {
+        "id": "evt_b386afae264d",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "supervisor",
+          "thought": "Mission msn_48d44529 created. Starting negotiation with Fire Station Marathahalli\u2026",
+          "context": {},
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "supervisor",
+        "timestamp": "2026-04-30T18:42:12.100000+00:00"
+      }
+    },
+    {
+      "offset_ms": 12150,
+      "event": {
+        "id": "evt_db774868c749",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "supervisor",
+          "thought": "Negotiation round 1: Proposing mission to Fire Station Marathahalli\u2026",
+          "context": {},
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "supervisor",
+        "timestamp": "2026-04-30T18:42:12.150000+00:00"
+      }
+    },
+    {
+      "offset_ms": 12200,
+      "event": {
+        "id": "evt_2e2fc2a0abc3",
+        "type": "mission.proposed",
+        "payload": {
+          "mission_id": "msn_48d44529",
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup",
+          "base_id": "base_006",
+          "base_name": "Fire Station Marathahalli",
+          "round": 1,
+          "disaster_type": "vehicle_accident",
+          "severity": 5,
+          "incident_coordinates": [
+            12.9569,
+            77.7011
+          ]
+        },
+        "source_agent": "supervisor",
+        "timestamp": "2026-04-30T18:42:12.200000+00:00"
+      }
+    },
+    {
+      "offset_ms": 13500,
+      "event": {
+        "id": "evt_1518cc0185b8",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "field_commander",
+          "thought": "Field Commander Inspector R. Kulkarni at Fire Station Marathahalli: team available, equipment matches vehicle_accident profile. ACCEPTING mission msn_48d44529.",
+          "context": {},
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "field_commander",
+        "timestamp": "2026-04-30T18:42:13.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 14000,
+      "event": {
+        "id": "evt_90d8e7819999",
+        "type": "mission.accepted",
+        "payload": {
+          "mission_id": "msn_48d44529",
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup",
+          "base_id": "base_006",
+          "base_name": "Fire Station Marathahalli",
+          "commander": "Inspector R. Kulkarni",
+          "disaster_type": "vehicle_accident",
+          "severity": 5,
+          "incident_coordinates": [
+            12.9569,
+            77.7011
+          ]
+        },
+        "source_agent": "supervisor",
+        "timestamp": "2026-04-30T18:42:14+00:00"
+      }
+    },
+    {
+      "offset_ms": 15000,
+      "event": {
+        "id": "evt_e1c1cd6ad0ae",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "route_optimizer",
+          "thought": "Computing hazard-aware route from Fire Station Marathahalli \u2192 Outer Ring Road \u00b7 Bellandur flyover, near Marathahalli. Avoiding hazard zone hz_da5dd93b.",
+          "context": {},
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "route_optimizer",
+        "timestamp": "2026-04-30T18:42:15+00:00"
+      }
+    },
+    {
+      "offset_ms": 15500,
+      "event": {
+        "id": "evt_05d1b99c9528",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "route_optimizer",
+          "tool": "compute_osm_route",
+          "args": {
+            "origin_lat": 12.9568,
+            "origin_lng": 77.7011,
+            "dest_lat": 12.9569,
+            "dest_lng": 77.7011,
+            "hazard_zones": [
+              {
+                "id": "hz_da5dd93b",
+                "type": "vehicle_accident",
+                "label": "Multi-vehicle pile-up on ORR Bellandur flyover, hail damage",
+                "geometry": {
+                  "type": "circle",
+                  "center": [
+                    12.9569,
+                    77.7011
+                  ],
+                  "radius_km": 0.6
+                },
+                "severity": "critical",
+                "blocked": true,
+                "color": "#ff0000"
+              }
+            ]
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "route_optimizer",
+        "timestamp": "2026-04-30T18:42:15.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 16000,
+      "event": {
+        "id": "evt_c498d8a7eb3d",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "route_optimizer",
+          "tool": "get_tomtom_route",
+          "args": {
+            "origin_lat": 12.9568,
+            "origin_lng": 77.7011,
+            "dest_lat": 12.9569,
+            "dest_lng": 77.7011
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "route_optimizer",
+        "timestamp": "2026-04-30T18:42:16+00:00"
+      }
+    },
+    {
+      "offset_ms": 17000,
+      "event": {
+        "id": "evt_a007f8d7d55a",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "route_optimizer",
+          "thought": "ROUTE: 0.33 km, ETA \u2248 0.9 min. Primary route avoids hazard hz_da5dd93b; one alternate considered (+18% distance, +22% ETA) and rejected.",
+          "context": {},
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "route_optimizer",
+        "timestamp": "2026-04-30T18:42:17+00:00"
+      }
+    },
+    {
+      "offset_ms": 17500,
+      "event": {
+        "id": "evt_83504b2d355c",
+        "type": "route.computed",
+        "payload": {
+          "mission_id": "msn_48d44529",
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup",
+          "distance_km": 0.33,
+          "eta_minutes": 0.9,
+          "path": [
+            [
+              12.9568,
+              77.7011
+            ],
+            [
+              12.956807,
+              77.701434
+            ],
+            [
+              12.956814,
+              77.701751
+            ],
+            [
+              12.956821,
+              77.702035
+            ],
+            [
+              12.956829,
+              77.702273
+            ],
+            [
+              12.956836,
+              77.702451
+            ],
+            [
+              12.956843,
+              77.702562
+            ],
+            [
+              12.95685,
+              77.7026
+            ],
+            [
+              12.956857,
+              77.702562
+            ],
+            [
+              12.956864,
+              77.702451
+            ],
+            [
+              12.956871,
+              77.702273
+            ],
+            [
+              12.956879,
+              77.702035
+            ],
+            [
+              12.956886,
+              77.701751
+            ],
+            [
+              12.956893,
+              77.701434
+            ],
+            [
+              12.9569,
+              77.7011
+            ]
+          ],
+          "status": "ok",
+          "avoided_hazards": [
+            "hz_da5dd93b"
+          ],
+          "candidates": [
+            {
+              "label": "Primary (hazard-aware)",
+              "distance_km": 0.33,
+              "eta_minutes": 0.9
+            },
+            {
+              "label": "Alternate (avoiding ORR)",
+              "distance_km": 0.3894,
+              "eta_minutes": 1.098
+            }
+          ]
+        },
+        "source_agent": "route_optimizer",
+        "timestamp": "2026-04-30T18:42:17.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 18500,
+      "event": {
+        "id": "evt_b76351d6ad2b",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "communications",
+          "thought": "Drafting public alert for Outer Ring Road \u00b7 Bellandur flyover, near Marathahalli (severity 5, radius 1.5 km).",
+          "context": {},
+          "incident_id": "inc_503d69fd",
+          "citizen_id": "demo_blr26_orr_pileup"
+        },
+        "source_agent": "communications",
+        "timestamp": "2026-04-30T18:42:18.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 19000,
+      "event": {
+        "id": "evt_ab7a36a3fa51",
+        "type": "public.alert.broadcast",
+        "payload": {
+          "incident_id": "inc_503d69fd",
+          "headline": "Emergency alert near Outer Ring Road \u00b7 Bellandur flyover, near Marathahalli",
+          "message": "Vehicle Accident reported at Outer Ring Road \u00b7 Bellandur flyover, near Marathahalli. Avoid the area; rescue units inbound. Follow official advisories.",
+          "severity": 5,
+          "coordinates": [
+            12.9569,
+            77.7011
+          ],
+          "radius_km": 1.5
+        },
+        "source_agent": "communications",
+        "timestamp": "2026-04-30T18:42:19+00:00"
+      }
+    },
+    {
+      "offset_ms": 25000,
+      "event": {
+        "id": "evt_b866f8ac8680",
+        "type": "citizen.report.submitted",
+        "payload": {
+          "citizen_id": "demo_blr26_jayanagar_tree",
+          "disaster_type": "tree_fall",
+          "description": "Huge rain-tree has fallen across 30th Cross in Jayanagar 4th block. Completely blocking the road in both directions. Power lines are down too \u2014 sparks visible. The hail and wind brought it down. Nobody hurt that I can see but people can't leave the area.",
+          "coordinates": [
+            12.9241,
+            77.5829
+          ],
+          "severity_hint": 3,
+          "demo_run_id": "synth_hailstorm_v1",
+          "demo_step": 2
+        },
+        "source_agent": "demo.demo_blr26_jayanagar_tree",
+        "timestamp": "2026-04-30T18:42:25+00:00"
+      }
+    },
+    {
+      "offset_ms": 25050,
+      "event": {
+        "id": "evt_40e6bc3bcf87",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "situation_awareness",
+          "thought": "Analyzing report: 'Huge rain-tree has fallen across 30th Cross in Jayanagar 4th block. Completely blocking the road in \u2026'",
+          "context": {},
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:25.050000+00:00"
+      }
+    },
+    {
+      "offset_ms": 25050,
+      "event": {
+        "id": "evt_3be9f13057c4",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "social_media_intel",
+          "thought": "Pulling public chatter for 'Huge rain-tree has fallen across 30th Cross in Jayanagar 4th block. Completely b\u2026'",
+          "context": {},
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:25.050000+00:00"
+      }
+    },
+    {
+      "offset_ms": 26500,
+      "event": {
+        "id": "evt_528c839c8a4c",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "situation_awareness",
+          "tool": "get_weather",
+          "args": {
+            "lat": 12.9241,
+            "lng": 77.5829
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:26.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 26600,
+      "event": {
+        "id": "evt_86777e400e7f",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "situation_awareness",
+          "tool": "search_disaster_news",
+          "args": {
+            "query": "tree_fall Bengaluru hail"
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:26.600000+00:00"
+      }
+    },
+    {
+      "offset_ms": 26700,
+      "event": {
+        "id": "evt_2d07dec2f6bc",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "situation_awareness",
+          "tool": "get_gdacs_alerts",
+          "args": {
+            "lat": 12.9241,
+            "lng": 77.5829,
+            "radius_km": 5.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:26.700000+00:00"
+      }
+    },
+    {
+      "offset_ms": 26800,
+      "event": {
+        "id": "evt_725d0336a99f",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "situation_awareness",
+          "tool": "get_recent_earthquakes",
+          "args": {
+            "lat": 12.9241,
+            "lng": 77.5829,
+            "radius_km": 5.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:26.800000+00:00"
+      }
+    },
+    {
+      "offset_ms": 26900,
+      "event": {
+        "id": "evt_8f4185c140ed",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "situation_awareness",
+          "tool": "get_hazard_zones",
+          "args": {
+            "lat": 12.9241,
+            "lng": 77.5829,
+            "radius_km": 1.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:26.900000+00:00"
+      }
+    },
+    {
+      "offset_ms": 28000,
+      "event": {
+        "id": "evt_702c025cb5f8",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "social_media_intel",
+          "tool": "search_reddit_posts",
+          "args": {
+            "query": "hail 30th Cross Bengaluru",
+            "max_results": 8.0,
+            "hours_back": 24.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:28+00:00"
+      }
+    },
+    {
+      "offset_ms": 28100,
+      "event": {
+        "id": "evt_ab659f7a5c18",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "social_media_intel",
+          "tool": "fetch_local_rss_feeds",
+          "args": {
+            "keyword": "hail"
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:28.100000+00:00"
+      }
+    },
+    {
+      "offset_ms": 28200,
+      "event": {
+        "id": "evt_b2c09601a6ab",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "social_media_intel",
+          "tool": "search_disaster_news",
+          "args": {
+            "query": "hail tree_fall Bengaluru",
+            "max_results": 5.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:28.200000+00:00"
+      }
+    },
+    {
+      "offset_ms": 28300,
+      "event": {
+        "id": "evt_c6f0bed0fc9e",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "social_media_intel",
+          "tool": "generate_realistic_tweets",
+          "args": {
+            "incident_summary": "Huge rain-tree has fallen across 30th Cross in Jayanagar 4th block",
+            "location": "Bengaluru",
+            "count": 4.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:28.300000+00:00"
+      }
+    },
+    {
+      "offset_ms": 29500,
+      "event": {
+        "id": "evt_91f12b46e68f",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "situation_awareness",
+          "thought": "ASSESSMENT:\n- is_disaster: true\n- disaster_type: tree_fall\n- severity: 3\n- confidence: 0.92\n- coordinates: [12.9241, 77.5829]\n- location_name: 30th Cross, Jayanagar 4th block\n- reasoning: Citizen description corroborated by IMD severe-storm warning over Bengaluru urban district and matching reports on GNews + r/bangalore. High confidence.",
+          "context": {},
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:29.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 29600,
+      "event": {
+        "id": "evt_2d7b7f808f09",
+        "type": "situation.assessed",
+        "payload": {
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree",
+          "is_disaster": true,
+          "disaster_type": "tree_fall",
+          "severity": 3,
+          "confidence": 0.92,
+          "coordinates": [
+            12.9241,
+            77.5829
+          ],
+          "location_name": "30th Cross, Jayanagar 4th block"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:29.600000+00:00"
+      }
+    },
+    {
+      "offset_ms": 30500,
+      "event": {
+        "id": "evt_f57c953f07d4",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "social_media_intel",
+          "thought": "SOCIAL_INTEL:\n- legitimacy_score: 71.0\n- verdict: likely_real\n- evidence_count: {\"reddit\": 2, \"rss\": 1, \"gnews\": 3, \"synthetic_tweets\": 4}",
+          "context": {},
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:30.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 30600,
+      "event": {
+        "id": "evt_9c876eddcf33",
+        "type": "social.signal.scored",
+        "payload": {
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree",
+          "legitimacy_score": 71.0,
+          "verdict": "likely_real",
+          "axis_scores": {
+            "source_credibility": 70.0,
+            "recency": 90.0,
+            "geo_relevance": 85.0,
+            "corroboration": 60.0,
+            "media_evidence": 40.0,
+            "sentiment_urgency": 80.0
+          },
+          "evidence_count": {
+            "reddit": 2,
+            "rss": 1,
+            "gnews": 3,
+            "synthetic_tweets": 4
+          },
+          "raw": "SOCIAL_INTEL:\n- legitimacy_score: 71.0\n- verdict: likely_real\n- axis_scores:\n    source_credibility: 70.0\n    recency: 90.0\n    geo_relevance: 85.0\n    corroboration: 60.0\n    media_evidence: 40.0\n    sentiment_urgency: 80.0\n- evidence_count: {\"reddit\": 2, \"rss\": 1, \"gnews\": 3, \"synthetic_tweets\": 4}\n- top_signals:\n    - platform: The Hindu\n      url: https://www.thehindu.com/news/cities/bangalore/hail-storm-tree-fall\n    - platform: r/bangalore\n      url: https://www.reddit.com/r/bangalore/comments/jayanagar_tree\n    - platform: Bangalore Mirror\n      url: https://bangaloremirror.indiatimes.com/bangalore/civic/hail-damage\n"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:30.600000+00:00"
+      }
+    },
+    {
+      "offset_ms": 31500,
+      "event": {
+        "id": "evt_4f6082ad2a63",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "hazard_assessment",
+          "thought": "Establishing hazard polygon around 30th Cross, Jayanagar 4th block: radius 0.3km, severity high, blocked=True. This hazard will be honored by the route optimizer when planning incoming rescue paths.",
+          "context": {},
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "hazard_assessment",
+        "timestamp": "2026-04-30T18:42:31.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 31700,
+      "event": {
+        "id": "evt_637bbbea0821",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "hazard_assessment",
+          "tool": "create_hazard_zone",
+          "args": {
+            "disaster_type": "tree_fall",
+            "center_lat": 12.9241,
+            "center_lng": 77.5829,
+            "radius_km": 0.3,
+            "severity": "high",
+            "label": "Heritage rain-tree fallen on 30th Cross Jayanagar; live wire",
+            "blocked": true
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "hazard_assessment",
+        "timestamp": "2026-04-30T18:42:31.700000+00:00"
+      }
+    },
+    {
+      "offset_ms": 31800,
+      "event": {
+        "id": "evt_d076651d290e",
+        "type": "hazard.zone.proposed",
+        "payload": {
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree",
+          "zone": {
+            "id": "hz_cfd55902",
+            "type": "tree_fall",
+            "label": "Heritage rain-tree fallen on 30th Cross Jayanagar; live wire",
+            "geometry": {
+              "type": "circle",
+              "center": [
+                12.9241,
+                77.5829
+              ],
+              "radius_km": 0.3
+            },
+            "severity": "high",
+            "blocked": true,
+            "color": "#ff4444"
+          }
+        },
+        "source_agent": "hazard_assessment",
+        "timestamp": "2026-04-30T18:42:31.800000+00:00"
+      }
+    },
+    {
+      "offset_ms": 32500,
+      "event": {
+        "id": "evt_4bd7659fb07b",
+        "type": "hazard.zone.confirmed",
+        "payload": {
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree",
+          "zone": {
+            "id": "hz_cfd55902",
+            "type": "tree_fall",
+            "label": "Heritage rain-tree fallen on 30th Cross Jayanagar; live wire",
+            "geometry": {
+              "type": "circle",
+              "center": [
+                12.9241,
+                77.5829
+              ],
+              "radius_km": 0.3
+            },
+            "severity": "high",
+            "blocked": true,
+            "color": "#ff4444"
+          }
+        },
+        "source_agent": "hazard_assessment",
+        "timestamp": "2026-04-30T18:42:32.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 34000,
+      "event": {
+        "id": "evt_6c3d58ba42db",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "dispatch_strategist",
+          "thought": "Evaluating bases for tree_fall severity 3 at 30th Cross, Jayanagar 4th block. Querying nearby bases & checking specialism match.",
+          "context": {},
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "dispatch_strategist",
+        "timestamp": "2026-04-30T18:42:34+00:00"
+      }
+    },
+    {
+      "offset_ms": 34300,
+      "event": {
+        "id": "evt_ba62b0e6a98d",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "dispatch_strategist",
+          "tool": "get_rescue_bases",
+          "args": {
+            "disaster_type": "tree_fall",
+            "near_lat": 12.9241,
+            "near_lng": 77.5829
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "dispatch_strategist",
+        "timestamp": "2026-04-30T18:42:34.300000+00:00"
+      }
+    },
+    {
+      "offset_ms": 34500,
+      "event": {
+        "id": "evt_1a05a7eab5aa",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "dispatch_strategist",
+          "tool": "get_hazard_zones",
+          "args": {
+            "lat": 12.9241,
+            "lng": 77.5829,
+            "radius_km": 5.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "dispatch_strategist",
+        "timestamp": "2026-04-30T18:42:34.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 35500,
+      "event": {
+        "id": "evt_e45783f86ddc",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "dispatch_strategist",
+          "tool": "get_tomtom_route",
+          "args": {
+            "origin_lat": 12.9728,
+            "origin_lng": 77.6094,
+            "dest_lat": 12.9241,
+            "dest_lng": 77.5829
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "dispatch_strategist",
+        "timestamp": "2026-04-30T18:42:35.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 37000,
+      "event": {
+        "id": "evt_b218de3ac263",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "dispatch_strategist",
+          "thought": "DISPATCH DECISION:\n- chosen_base_id: base_014\n- chosen_base_name: BBMP Disaster Response Cell Mayo Hall\n- base_coordinates: [12.9728, 77.6094]\n- disaster_type: tree_fall\n- estimated_eta_minutes: ~estimating~\n- reasoning: BBMP Disaster Response Cell Mayo Hall provides the strongest specialism match for tree_fall with available teams and the shortest hazard-aware ETA after considering active hazard zones.\n- considered_alternatives:\n  - Fire Station Rajajinagar: Carries chainsaws and tree_fall specialism but is 9.1km away with rush-hour traffic; BBMP has dedicated heavy-clearance fleet closer.\n  - Traffic Police Quick-Clearance Fleet ORR: Best for arterial clearance but ORR-based units would have to cross the city through hail-affected zones.\n",
+          "context": {},
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "dispatch_strategist",
+        "timestamp": "2026-04-30T18:42:37+00:00"
+      }
+    },
+    {
+      "offset_ms": 37100,
+      "event": {
+        "id": "evt_00c434db6ac5",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "supervisor",
+          "thought": "Mission msn_f433ae9e created. Starting negotiation with BBMP Disaster Response Cell Mayo Hall\u2026",
+          "context": {},
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "supervisor",
+        "timestamp": "2026-04-30T18:42:37.100000+00:00"
+      }
+    },
+    {
+      "offset_ms": 37150,
+      "event": {
+        "id": "evt_d88a58ae2562",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "supervisor",
+          "thought": "Negotiation round 1: Proposing mission to BBMP Disaster Response Cell Mayo Hall\u2026",
+          "context": {},
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "supervisor",
+        "timestamp": "2026-04-30T18:42:37.150000+00:00"
+      }
+    },
+    {
+      "offset_ms": 37200,
+      "event": {
+        "id": "evt_ba5cd7878d40",
+        "type": "mission.proposed",
+        "payload": {
+          "mission_id": "msn_f433ae9e",
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree",
+          "base_id": "base_014",
+          "base_name": "BBMP Disaster Response Cell Mayo Hall",
+          "round": 1,
+          "disaster_type": "tree_fall",
+          "severity": 3,
+          "incident_coordinates": [
+            12.9241,
+            77.5829
+          ]
+        },
+        "source_agent": "supervisor",
+        "timestamp": "2026-04-30T18:42:37.200000+00:00"
+      }
+    },
+    {
+      "offset_ms": 38500,
+      "event": {
+        "id": "evt_084ee582b0b9",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "field_commander",
+          "thought": "Field Commander Engineer S. Reddy at BBMP Disaster Response Cell Mayo Hall: team available, equipment matches tree_fall profile. ACCEPTING mission msn_f433ae9e.",
+          "context": {},
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "field_commander",
+        "timestamp": "2026-04-30T18:42:38.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 39000,
+      "event": {
+        "id": "evt_173bced57e23",
+        "type": "mission.accepted",
+        "payload": {
+          "mission_id": "msn_f433ae9e",
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree",
+          "base_id": "base_014",
+          "base_name": "BBMP Disaster Response Cell Mayo Hall",
+          "commander": "Engineer S. Reddy",
+          "disaster_type": "tree_fall",
+          "severity": 3,
+          "incident_coordinates": [
+            12.9241,
+            77.5829
+          ]
+        },
+        "source_agent": "supervisor",
+        "timestamp": "2026-04-30T18:42:39+00:00"
+      }
+    },
+    {
+      "offset_ms": 40000,
+      "event": {
+        "id": "evt_a71be83754f7",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "route_optimizer",
+          "thought": "Computing hazard-aware route from BBMP Disaster Response Cell Mayo Hall \u2192 30th Cross, Jayanagar 4th block. Avoiding hazard zone hz_cfd55902.",
+          "context": {},
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "route_optimizer",
+        "timestamp": "2026-04-30T18:42:40+00:00"
+      }
+    },
+    {
+      "offset_ms": 40500,
+      "event": {
+        "id": "evt_991185491197",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "route_optimizer",
+          "tool": "compute_osm_route",
+          "args": {
+            "origin_lat": 12.9728,
+            "origin_lng": 77.6094,
+            "dest_lat": 12.9241,
+            "dest_lng": 77.5829,
+            "hazard_zones": [
+              {
+                "id": "hz_cfd55902",
+                "type": "tree_fall",
+                "label": "Heritage rain-tree fallen on 30th Cross Jayanagar; live wire",
+                "geometry": {
+                  "type": "circle",
+                  "center": [
+                    12.9241,
+                    77.5829
+                  ],
+                  "radius_km": 0.3
+                },
+                "severity": "high",
+                "blocked": true,
+                "color": "#ff4444"
+              }
+            ]
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "route_optimizer",
+        "timestamp": "2026-04-30T18:42:40.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 41000,
+      "event": {
+        "id": "evt_42ef6c57acf6",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "route_optimizer",
+          "tool": "get_tomtom_route",
+          "args": {
+            "origin_lat": 12.9728,
+            "origin_lng": 77.6094,
+            "dest_lat": 12.9241,
+            "dest_lng": 77.5829
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "route_optimizer",
+        "timestamp": "2026-04-30T18:42:41+00:00"
+      }
+    },
+    {
+      "offset_ms": 42000,
+      "event": {
+        "id": "evt_d60189497b6e",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "route_optimizer",
+          "thought": "ROUTE: 6.14 km, ETA \u2248 16.7 min. Primary route avoids hazard hz_cfd55902; one alternate considered (+18% distance, +22% ETA) and rejected.",
+          "context": {},
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "route_optimizer",
+        "timestamp": "2026-04-30T18:42:42+00:00"
+      }
+    },
+    {
+      "offset_ms": 42500,
+      "event": {
+        "id": "evt_ca55a2a07ee4",
+        "type": "route.computed",
+        "payload": {
+          "mission_id": "msn_f433ae9e",
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree",
+          "distance_km": 6.14,
+          "eta_minutes": 16.7,
+          "path": [
+            [
+              12.9728,
+              77.6094
+            ],
+            [
+              12.969481,
+              77.607214
+            ],
+            [
+              12.966154,
+              77.605043
+            ],
+            [
+              12.962811,
+              77.6029
+            ],
+            [
+              12.959446,
+              77.600798
+            ],
+            [
+              12.956053,
+              77.598749
+            ],
+            [
+              12.952628,
+              77.596758
+            ],
+            [
+              12.949167,
+              77.594832
+            ],
+            [
+              12.94567,
+              77.592973
+            ],
+            [
+              12.942139,
+              77.591177
+            ],
+            [
+              12.938575,
+              77.589441
+            ],
+            [
+              12.934983,
+              77.587757
+            ],
+            [
+              12.931368,
+              77.586114
+            ],
+            [
+              12.927738,
+              77.5845
+            ],
+            [
+              12.9241,
+              77.5829
+            ]
+          ],
+          "status": "ok",
+          "avoided_hazards": [
+            "hz_cfd55902"
+          ],
+          "candidates": [
+            {
+              "label": "Primary (hazard-aware)",
+              "distance_km": 6.14,
+              "eta_minutes": 16.7
+            },
+            {
+              "label": "Alternate (avoiding ORR)",
+              "distance_km": 7.2452,
+              "eta_minutes": 20.374
+            }
+          ]
+        },
+        "source_agent": "route_optimizer",
+        "timestamp": "2026-04-30T18:42:42.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 43500,
+      "event": {
+        "id": "evt_46386f21fbcb",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "communications",
+          "thought": "Drafting public alert for 30th Cross, Jayanagar 4th block (severity 3, radius 1.5 km).",
+          "context": {},
+          "incident_id": "inc_3a47d246",
+          "citizen_id": "demo_blr26_jayanagar_tree"
+        },
+        "source_agent": "communications",
+        "timestamp": "2026-04-30T18:42:43.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 44000,
+      "event": {
+        "id": "evt_053dfdddc00f",
+        "type": "public.alert.broadcast",
+        "payload": {
+          "incident_id": "inc_3a47d246",
+          "headline": "Emergency alert near 30th Cross, Jayanagar 4th block",
+          "message": "Tree Fall reported at 30th Cross, Jayanagar 4th block. Avoid the area; rescue units inbound. Follow official advisories.",
+          "severity": 3,
+          "coordinates": [
+            12.9241,
+            77.5829
+          ],
+          "radius_km": 1.5
+        },
+        "source_agent": "communications",
+        "timestamp": "2026-04-30T18:42:44+00:00"
+      }
+    },
+    {
+      "offset_ms": 50000,
+      "event": {
+        "id": "evt_6866dbfde781",
+        "type": "citizen.sos.triggered",
+        "payload": {
+          "citizen_id": "demo_blr26_indira_skylight",
+          "coordinates": [
+            12.9719,
+            77.6412
+          ],
+          "note": "My grandfather is hurt \u2014 the skylight in our living room shattered from the hail and glass fell on him. He's bleeding from his head and shoulder. We are at 12th Main Indiranagar 1st stage. Please send an ambulance fast.",
+          "disaster_type": "medical",
+          "demo_run_id": "synth_hailstorm_v1",
+          "demo_step": 3
+        },
+        "source_agent": "demo.demo_blr26_indira_skylight",
+        "timestamp": "2026-04-30T18:42:50+00:00"
+      }
+    },
+    {
+      "offset_ms": 50050,
+      "event": {
+        "id": "evt_a8ee055334f0",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "situation_awareness",
+          "thought": "Analyzing report: 'My grandfather is hurt \u2014 the skylight in our living room shattered from the hail and glass fell on h\u2026'",
+          "context": {},
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:50.050000+00:00"
+      }
+    },
+    {
+      "offset_ms": 50050,
+      "event": {
+        "id": "evt_30964f875990",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "social_media_intel",
+          "thought": "Pulling public chatter for 'My grandfather is hurt \u2014 the skylight in our living room shattered from the hail\u2026'",
+          "context": {},
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:50.050000+00:00"
+      }
+    },
+    {
+      "offset_ms": 51500,
+      "event": {
+        "id": "evt_6b5381fca730",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "situation_awareness",
+          "tool": "get_weather",
+          "args": {
+            "lat": 12.9719,
+            "lng": 77.6412
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:51.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 51600,
+      "event": {
+        "id": "evt_ba7f62b7d69e",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "situation_awareness",
+          "tool": "search_disaster_news",
+          "args": {
+            "query": "medical Bengaluru hail"
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:51.600000+00:00"
+      }
+    },
+    {
+      "offset_ms": 51700,
+      "event": {
+        "id": "evt_d347da018dff",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "situation_awareness",
+          "tool": "get_gdacs_alerts",
+          "args": {
+            "lat": 12.9719,
+            "lng": 77.6412,
+            "radius_km": 5.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:51.700000+00:00"
+      }
+    },
+    {
+      "offset_ms": 51800,
+      "event": {
+        "id": "evt_a962e97c63ce",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "situation_awareness",
+          "tool": "get_recent_earthquakes",
+          "args": {
+            "lat": 12.9719,
+            "lng": 77.6412,
+            "radius_km": 5.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:51.800000+00:00"
+      }
+    },
+    {
+      "offset_ms": 51900,
+      "event": {
+        "id": "evt_a9cb82fed272",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "situation_awareness",
+          "tool": "get_hazard_zones",
+          "args": {
+            "lat": 12.9719,
+            "lng": 77.6412,
+            "radius_km": 1.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:51.900000+00:00"
+      }
+    },
+    {
+      "offset_ms": 53000,
+      "event": {
+        "id": "evt_4c03a2bf6081",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "social_media_intel",
+          "tool": "search_reddit_posts",
+          "args": {
+            "query": "hail 12th Main Bengaluru",
+            "max_results": 8.0,
+            "hours_back": 24.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:53+00:00"
+      }
+    },
+    {
+      "offset_ms": 53100,
+      "event": {
+        "id": "evt_484484664465",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "social_media_intel",
+          "tool": "fetch_local_rss_feeds",
+          "args": {
+            "keyword": "hail"
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:53.100000+00:00"
+      }
+    },
+    {
+      "offset_ms": 53200,
+      "event": {
+        "id": "evt_ba090eca015c",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "social_media_intel",
+          "tool": "search_disaster_news",
+          "args": {
+            "query": "hail medical Bengaluru",
+            "max_results": 5.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:53.200000+00:00"
+      }
+    },
+    {
+      "offset_ms": 53300,
+      "event": {
+        "id": "evt_d489b4def947",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "social_media_intel",
+          "tool": "generate_realistic_tweets",
+          "args": {
+            "incident_summary": "My grandfather is hurt \u2014 the skylight in our living room shattered from the hail and glass fell on him",
+            "location": "Bengaluru",
+            "count": 4.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:53.300000+00:00"
+      }
+    },
+    {
+      "offset_ms": 54500,
+      "event": {
+        "id": "evt_70bb35c8bb06",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "situation_awareness",
+          "thought": "ASSESSMENT:\n- is_disaster: true\n- disaster_type: medical\n- severity: 5\n- confidence: 0.92\n- coordinates: [12.9719, 77.6412]\n- location_name: 12th Main, Indiranagar 1st stage\n- reasoning: Citizen description corroborated by IMD severe-storm warning over Bengaluru urban district and matching reports on GNews + r/bangalore. High confidence.",
+          "context": {},
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:54.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 54600,
+      "event": {
+        "id": "evt_1f21f11abe1a",
+        "type": "situation.assessed",
+        "payload": {
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight",
+          "is_disaster": true,
+          "disaster_type": "medical",
+          "severity": 5,
+          "confidence": 0.92,
+          "coordinates": [
+            12.9719,
+            77.6412
+          ],
+          "location_name": "12th Main, Indiranagar 1st stage"
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:42:54.600000+00:00"
+      }
+    },
+    {
+      "offset_ms": 55500,
+      "event": {
+        "id": "evt_112ab3eb4c7e",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "social_media_intel",
+          "thought": "SOCIAL_INTEL:\n- legitimacy_score: 92.0\n- verdict: verified\n- evidence_count: {\"reddit\": 1, \"rss\": 0, \"gnews\": 2, \"synthetic_tweets\": 4}",
+          "context": {},
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:55.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 55600,
+      "event": {
+        "id": "evt_eb7afa4dd1c7",
+        "type": "social.signal.scored",
+        "payload": {
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight",
+          "legitimacy_score": 92.0,
+          "verdict": "verified",
+          "axis_scores": {
+            "source_credibility": 95.0,
+            "recency": 100.0,
+            "geo_relevance": 100.0,
+            "corroboration": 80.0,
+            "media_evidence": 70.0,
+            "sentiment_urgency": 100.0
+          },
+          "evidence_count": {
+            "reddit": 1,
+            "rss": 0,
+            "gnews": 2,
+            "synthetic_tweets": 4
+          },
+          "raw": "SOCIAL_INTEL:\n- legitimacy_score: 92.0\n- verdict: verified\n- axis_scores:\n    source_credibility: 95.0\n    recency: 100.0\n    geo_relevance: 100.0\n    corroboration: 80.0\n    media_evidence: 70.0\n    sentiment_urgency: 100.0\n- evidence_count: {\"reddit\": 1, \"rss\": 0, \"gnews\": 2, \"synthetic_tweets\": 4}\n- top_signals:\n    - platform: The Hindu\n      url: https://www.thehindu.com/news/cities/bangalore/hailstorm-injuries\n    - platform: Times of India\n      url: https://timesofindia.indiatimes.com/city/bengaluru/hail-injuries\n"
+        },
+        "source_agent": "social_media_intel",
+        "timestamp": "2026-04-30T18:42:55.600000+00:00"
+      }
+    },
+    {
+      "offset_ms": 56500,
+      "event": {
+        "id": "evt_d467c7c85cde",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "hazard_assessment",
+          "thought": "Establishing hazard polygon around 12th Main, Indiranagar 1st stage: radius 0.2km, severity high, blocked=False. This hazard will be honored by the route optimizer when planning incoming rescue paths.",
+          "context": {},
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "hazard_assessment",
+        "timestamp": "2026-04-30T18:42:56.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 56700,
+      "event": {
+        "id": "evt_c227654e4cd9",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "hazard_assessment",
+          "tool": "create_hazard_zone",
+          "args": {
+            "disaster_type": "building_collapse",
+            "center_lat": 12.9719,
+            "center_lng": 77.6412,
+            "radius_km": 0.2,
+            "severity": "high",
+            "label": "Skylight shatter \u2014 structural hazard at residence, Indiranagar",
+            "blocked": false
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "hazard_assessment",
+        "timestamp": "2026-04-30T18:42:56.700000+00:00"
+      }
+    },
+    {
+      "offset_ms": 56800,
+      "event": {
+        "id": "evt_598f2a21395d",
+        "type": "hazard.zone.proposed",
+        "payload": {
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight",
+          "zone": {
+            "id": "hz_1237a634",
+            "type": "building_collapse",
+            "label": "Skylight shatter \u2014 structural hazard at residence, Indiranagar",
+            "geometry": {
+              "type": "circle",
+              "center": [
+                12.9719,
+                77.6412
+              ],
+              "radius_km": 0.2
+            },
+            "severity": "high",
+            "blocked": false,
+            "color": "#ff4444",
+            "penalty_multiplier": 3.0
+          }
+        },
+        "source_agent": "hazard_assessment",
+        "timestamp": "2026-04-30T18:42:56.800000+00:00"
+      }
+    },
+    {
+      "offset_ms": 57500,
+      "event": {
+        "id": "evt_916d743afecc",
+        "type": "hazard.zone.confirmed",
+        "payload": {
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight",
+          "zone": {
+            "id": "hz_1237a634",
+            "type": "building_collapse",
+            "label": "Skylight shatter \u2014 structural hazard at residence, Indiranagar",
+            "geometry": {
+              "type": "circle",
+              "center": [
+                12.9719,
+                77.6412
+              ],
+              "radius_km": 0.2
+            },
+            "severity": "high",
+            "blocked": false,
+            "color": "#ff4444",
+            "penalty_multiplier": 3.0
+          }
+        },
+        "source_agent": "hazard_assessment",
+        "timestamp": "2026-04-30T18:42:57.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 59000,
+      "event": {
+        "id": "evt_933ccf8520dd",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "dispatch_strategist",
+          "thought": "Evaluating bases for medical severity 5 at 12th Main, Indiranagar 1st stage. Querying nearby bases & checking specialism match.",
+          "context": {},
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "dispatch_strategist",
+        "timestamp": "2026-04-30T18:42:59+00:00"
+      }
+    },
+    {
+      "offset_ms": 59300,
+      "event": {
+        "id": "evt_649fe47a1392",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "dispatch_strategist",
+          "tool": "get_rescue_bases",
+          "args": {
+            "disaster_type": "medical",
+            "near_lat": 12.9719,
+            "near_lng": 77.6412
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "dispatch_strategist",
+        "timestamp": "2026-04-30T18:42:59.300000+00:00"
+      }
+    },
+    {
+      "offset_ms": 59500,
+      "event": {
+        "id": "evt_b0ed3ac4fef0",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "dispatch_strategist",
+          "tool": "get_hazard_zones",
+          "args": {
+            "lat": 12.9719,
+            "lng": 77.6412,
+            "radius_km": 5.0
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "dispatch_strategist",
+        "timestamp": "2026-04-30T18:42:59.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 60500,
+      "event": {
+        "id": "evt_d94702d711b2",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "dispatch_strategist",
+          "tool": "get_tomtom_route",
+          "args": {
+            "origin_lat": 12.9591,
+            "origin_lng": 77.6499,
+            "dest_lat": 12.9719,
+            "dest_lng": 77.6412
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "dispatch_strategist",
+        "timestamp": "2026-04-30T18:43:00.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 62000,
+      "event": {
+        "id": "evt_406a47cbd313",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "dispatch_strategist",
+          "thought": "DISPATCH DECISION:\n- chosen_base_id: base_010\n- chosen_base_name: Manipal Hospital Old Airport Road\n- base_coordinates: [12.9591, 77.6499]\n- disaster_type: medical\n- estimated_eta_minutes: ~estimating~\n- reasoning: Manipal Hospital Old Airport Road provides the strongest specialism match for medical with available teams and the shortest hazard-aware ETA after considering active hazard zones.\n- considered_alternatives:\n  - Victoria Hospital (Govt) Fort: Public-hospital trauma capacity is excellent but 7.0km away vs Manipal at 1.6km; Glasgow Coma stabilization needs a fast handoff.\n  - Apollo Hospital Bannerghatta Road: High specialism match but 11.2km south through hail zone; ETA would exceed safe window for elderly patient with active bleed.\n",
+          "context": {},
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "dispatch_strategist",
+        "timestamp": "2026-04-30T18:43:02+00:00"
+      }
+    },
+    {
+      "offset_ms": 62100,
+      "event": {
+        "id": "evt_aaf060d52955",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "supervisor",
+          "thought": "Mission msn_7211f804 created. Starting negotiation with Manipal Hospital Old Airport Road\u2026",
+          "context": {},
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "supervisor",
+        "timestamp": "2026-04-30T18:43:02.100000+00:00"
+      }
+    },
+    {
+      "offset_ms": 62150,
+      "event": {
+        "id": "evt_173c30450783",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "supervisor",
+          "thought": "Negotiation round 1: Proposing mission to Manipal Hospital Old Airport Road\u2026",
+          "context": {},
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "supervisor",
+        "timestamp": "2026-04-30T18:43:02.150000+00:00"
+      }
+    },
+    {
+      "offset_ms": 62200,
+      "event": {
+        "id": "evt_6999b23a4406",
+        "type": "mission.proposed",
+        "payload": {
+          "mission_id": "msn_7211f804",
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight",
+          "base_id": "base_010",
+          "base_name": "Manipal Hospital Old Airport Road",
+          "round": 1,
+          "disaster_type": "medical",
+          "severity": 5,
+          "incident_coordinates": [
+            12.9719,
+            77.6412
+          ]
+        },
+        "source_agent": "supervisor",
+        "timestamp": "2026-04-30T18:43:02.200000+00:00"
+      }
+    },
+    {
+      "offset_ms": 63500,
+      "event": {
+        "id": "evt_a7433cb845b2",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "field_commander",
+          "thought": "Field Commander Dr. P. Iyer at Manipal Hospital Old Airport Road: team available, equipment matches medical profile. ACCEPTING mission msn_7211f804.",
+          "context": {},
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "field_commander",
+        "timestamp": "2026-04-30T18:43:03.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 64000,
+      "event": {
+        "id": "evt_5556dd8bc096",
+        "type": "mission.accepted",
+        "payload": {
+          "mission_id": "msn_7211f804",
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight",
+          "base_id": "base_010",
+          "base_name": "Manipal Hospital Old Airport Road",
+          "commander": "Dr. P. Iyer",
+          "disaster_type": "medical",
+          "severity": 5,
+          "incident_coordinates": [
+            12.9719,
+            77.6412
+          ]
+        },
+        "source_agent": "supervisor",
+        "timestamp": "2026-04-30T18:43:04+00:00"
+      }
+    },
+    {
+      "offset_ms": 65000,
+      "event": {
+        "id": "evt_1614d7db18b5",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "route_optimizer",
+          "thought": "Computing hazard-aware route from Manipal Hospital Old Airport Road \u2192 12th Main, Indiranagar 1st stage. Avoiding hazard zone hz_1237a634.",
+          "context": {},
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "route_optimizer",
+        "timestamp": "2026-04-30T18:43:05+00:00"
+      }
+    },
+    {
+      "offset_ms": 65500,
+      "event": {
+        "id": "evt_d95969b58c4a",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "route_optimizer",
+          "tool": "compute_osm_route",
+          "args": {
+            "origin_lat": 12.9591,
+            "origin_lng": 77.6499,
+            "dest_lat": 12.9719,
+            "dest_lng": 77.6412,
+            "hazard_zones": [
+              {
+                "id": "hz_1237a634",
+                "type": "building_collapse",
+                "label": "Skylight shatter \u2014 structural hazard at residence, Indiranagar",
+                "geometry": {
+                  "type": "circle",
+                  "center": [
+                    12.9719,
+                    77.6412
+                  ],
+                  "radius_km": 0.2
+                },
+                "severity": "high",
+                "blocked": false,
+                "color": "#ff4444",
+                "penalty_multiplier": 3.0
+              }
+            ]
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "route_optimizer",
+        "timestamp": "2026-04-30T18:43:05.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 66000,
+      "event": {
+        "id": "evt_8c98542143d9",
+        "type": "agent.tool_call",
+        "payload": {
+          "agent": "route_optimizer",
+          "tool": "get_tomtom_route",
+          "args": {
+            "origin_lat": 12.9591,
+            "origin_lng": 77.6499,
+            "dest_lat": 12.9719,
+            "dest_lng": 77.6412
+          },
+          "result_summary": "completed",
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "route_optimizer",
+        "timestamp": "2026-04-30T18:43:06+00:00"
+      }
+    },
+    {
+      "offset_ms": 67000,
+      "event": {
+        "id": "evt_c304f3eb9748",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "route_optimizer",
+          "thought": "ROUTE: 1.75 km, ETA \u2248 4.8 min. Primary route avoids hazard hz_1237a634; one alternate considered (+18% distance, +22% ETA) and rejected.",
+          "context": {},
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "route_optimizer",
+        "timestamp": "2026-04-30T18:43:07+00:00"
+      }
+    },
+    {
+      "offset_ms": 67500,
+      "event": {
+        "id": "evt_8163df68bb57",
+        "type": "route.computed",
+        "payload": {
+          "mission_id": "msn_7211f804",
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight",
+          "distance_km": 1.75,
+          "eta_minutes": 4.8,
+          "path": [
+            [
+              12.9591,
+              77.6499
+            ],
+            [
+              12.960202,
+              77.649555
+            ],
+            [
+              12.961294,
+              77.649195
+            ],
+            [
+              12.962369,
+              77.648809
+            ],
+            [
+              12.963416,
+              77.648384
+            ],
+            [
+              12.964431,
+              77.647911
+            ],
+            [
+              12.965408,
+              77.647381
+            ],
+            [
+              12.966343,
+              77.646791
+            ],
+            [
+              12.967236,
+              77.646138
+            ],
+            [
+              12.968088,
+              77.645425
+            ],
+            [
+              12.968902,
+              77.644656
+            ],
+            [
+              12.969683,
+              77.643838
+            ],
+            [
+              12.970437,
+              77.642981
+            ],
+            [
+              12.971173,
+              77.642097
+            ],
+            [
+              12.9719,
+              77.6412
+            ]
+          ],
+          "status": "ok",
+          "avoided_hazards": [
+            "hz_1237a634"
+          ],
+          "candidates": [
+            {
+              "label": "Primary (hazard-aware)",
+              "distance_km": 1.75,
+              "eta_minutes": 4.8
+            },
+            {
+              "label": "Alternate (avoiding ORR)",
+              "distance_km": 2.065,
+              "eta_minutes": 5.856
+            }
+          ]
+        },
+        "source_agent": "route_optimizer",
+        "timestamp": "2026-04-30T18:43:07.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 68500,
+      "event": {
+        "id": "evt_7b9d654d6021",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "communications",
+          "thought": "Drafting public alert for 12th Main, Indiranagar 1st stage (severity 5, radius 1.5 km).",
+          "context": {},
+          "incident_id": "inc_87c638a0",
+          "citizen_id": "demo_blr26_indira_skylight"
+        },
+        "source_agent": "communications",
+        "timestamp": "2026-04-30T18:43:08.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 69000,
+      "event": {
+        "id": "evt_bd7cca040cd1",
+        "type": "public.alert.broadcast",
+        "payload": {
+          "incident_id": "inc_87c638a0",
+          "headline": "Emergency alert near 12th Main, Indiranagar 1st stage",
+          "message": "Medical reported at 12th Main, Indiranagar 1st stage. Avoid the area; rescue units inbound. Follow official advisories.",
+          "severity": 5,
+          "coordinates": [
+            12.9719,
+            77.6412
+          ],
+          "radius_km": 1.5
+        },
+        "source_agent": "communications",
+        "timestamp": "2026-04-30T18:43:09+00:00"
+      }
+    },
+    {
+      "offset_ms": 80000,
+      "event": {
+        "id": "evt_c3352306868f",
+        "type": "external.alert.received",
+        "payload": {
+          "source": "imd_weather",
+          "headline": "IMD: Severe thunderstorm with large hail moving across Bengaluru urban district; gusts up to 80 km/h reported.",
+          "category": "severe_weather",
+          "coordinates": [
+            12.9716,
+            77.5946
+          ],
+          "severity_hint": 4,
+          "demo_run_id": "synth_hailstorm_v1",
+          "demo_step": 4
+        },
+        "source_agent": "demo.external",
+        "timestamp": "2026-04-30T18:43:20+00:00"
+      }
+    },
+    {
+      "offset_ms": 80500,
+      "event": {
+        "id": "evt_8d310ca162c1",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "situation_awareness",
+          "thought": "External IMD alert corroborates the citywide hail cell. All three active incidents (ORR pile-up, Jayanagar tree-fall, Indiranagar skylight injury) tagged as a single weather-driven cluster. Recommending sustained vigilance for the next 45 min.",
+          "context": {}
+        },
+        "source_agent": "situation_awareness",
+        "timestamp": "2026-04-30T18:43:20.500000+00:00"
+      }
+    },
+    {
+      "offset_ms": 85000,
+      "event": {
+        "id": "evt_c92016c86ade",
+        "type": "agent.reasoning",
+        "payload": {
+          "agent": "supervisor",
+          "thought": "Demo cluster summary \u2014 3 missions accepted, 3 rescue routes computed avoiding active hazards, 1 IMD external alert. All field commanders confirmed en-route. Re-evaluation loop will tick in 30s to reassess weather corroboration and ETAs.",
+          "context": {}
+        },
+        "source_agent": "supervisor",
+        "timestamp": "2026-04-30T18:43:25+00:00"
+      }
+    }
+  ],
+  "synthesized": true
+}

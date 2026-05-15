@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
-  BarChart3,
   Brain,
   Building2,
   Database,
@@ -21,11 +20,15 @@ import {
 import { api } from "@/lib/api";
 import type { AgentEvent, HazardZone, Mission } from "@/lib/types";
 import { useAuthorityWS } from "@/lib/useAuthorityWS";
+import { useReplayState } from "@/lib/useReplayState";
 import AgentReasoningPanel from "@/components/AgentReasoningPanel";
+import MissionDetailDrawer from "@/components/MissionDetailDrawer";
+import DataSourcesFooter from "@/components/DataSourcesFooter";
 import AgentCrewPanel from "@/components/AgentCrewPanel";
 import MissionsPanel from "@/components/MissionsPanel";
 import MetricsPanel from "@/components/MetricsPanel";
 import DemoLauncher from "@/components/DemoLauncher";
+import CinemaOverlay from "@/components/cinema/CinemaOverlay";
 import HazardsView from "@/components/views/HazardsView";
 import DataFeedsView from "@/components/views/DataFeedsView";
 import RouteHistoryView from "@/components/views/RouteHistoryView";
@@ -96,17 +99,21 @@ const NAV: NavItem[] = [
 ];
 
 export default function AuthorityPage() {
-  const { connected, events: liveEvents } = useAuthorityWS();
+  const { connected, events: liveEvents, routes: liveRoutes, latestSocial } = useAuthorityWS();
+  const replay = useReplayState();
   const [seedEvents, setSeedEvents] = useState<AgentEvent[]>([]);
   const [missions, setMissions] = useState<Mission[]>([]);
   const [hazards, setHazards] = useState<HazardZone[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [view, setView] = useState<ViewId>("live_map");
-  const [rightTab, setRightTab] = useState<"reasoning" | "metrics">(
-    "reasoning",
-  );
   const [clock, setClock] = useState<string>("");
+  // Mission detail drawer — operator-facing "click any pin, see why".
+  const [openMissionId, setOpenMissionId] = useState<string | null>(null);
+  const openMission = useMemo(
+    () => missions.find((m) => m.mission_id === openMissionId) ?? null,
+    [missions, openMissionId],
+  );
 
   async function refresh() {
     try {
@@ -193,61 +200,110 @@ export default function AuthorityPage() {
     "Admin",
   ];
 
+  const dateLine = useMemo(() => {
+    const d = new Date();
+    return d
+      .toLocaleDateString("en-GB", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+      .toUpperCase();
+  }, [clock]);
+
   return (
     <main className="dark-scope flex h-screen flex-col overflow-hidden bg-onyx text-admin-text">
-      {/* TOPBAR */}
-      <header className="flex items-center gap-4 border-b border-admin-rule bg-onyx-2 px-5 py-2.5">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 px-1 py-1 font-mono text-[11px] uppercase tracking-[.1em] text-steel-light transition hover:text-admin-text"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Home
-        </Link>
-        <span className="h-3.5 w-px bg-admin-rule" />
-        <span className="font-serif text-[15px] font-semibold tracking-tight text-safety-org">
-          ResQRoute
-        </span>
-        <span className="h-3.5 w-px bg-admin-rule" />
-        <span className="font-mono text-[10px] uppercase tracking-[.12em] text-steel-light">
-          Command Centre · Bengaluru District
-        </span>
-
-        <div className="ml-auto flex items-center gap-4">
-          <button
-            onClick={refresh}
-            className="inline-flex items-center gap-1 rounded-sharp px-2 py-1 font-mono text-[10px] uppercase tracking-[.12em] text-steel-light transition hover:bg-white/5 hover:text-admin-text"
-          >
-            <RefreshCw className="h-3 w-3" />
-            Refresh
-          </button>
-          <span
-            className={
-              "inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[.12em] " +
-              (connected ? "text-safety-org" : "text-danger")
-            }
-          >
+      {/* MASTHEAD — editorial / Monocle */}
+      <header className="bg-onyx-2">
+        {/* Top sliver: date · live · clock */}
+        <div className="flex items-center gap-3 border-b border-admin-rule px-6 py-1">
+          <span className="font-mono text-[9px] uppercase tracking-[.18em] text-admin-muted">
+            {dateLine}
+          </span>
+          <span className="ml-auto inline-flex items-center gap-3">
             <span
               className={
-                "h-1.5 w-1.5 rounded-full " +
-                (connected ? "bg-safety-org live-pulse-orange" : "bg-danger")
+                "inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[.18em] " +
+                (connected ? "text-safety-org" : "text-danger")
               }
-            />
-            {connected ? "LIVE" : "OFFLINE"}
+            >
+              <span
+                className={
+                  "h-1.5 w-1.5 live-pulse " +
+                  (connected ? "bg-safety-org" : "bg-danger")
+                }
+              />
+              {connected ? "LIVE" : "OFFLINE"}
+            </span>
+            <span
+              className="font-mono text-[10px] tracking-[.06em] text-admin-muted"
+              style={{ fontVariantNumeric: "tabular-nums" }}
+            >
+              {clock}
+            </span>
           </span>
-          <span className="font-mono text-[11px] tracking-[.04em] text-steel-light">
-            {clock}
+        </div>
+
+        {/* Masthead row: wordmark + section line + edition */}
+        <div className="flex items-end justify-between border-b border-admin-text px-6 pb-2 pt-3">
+          <div className="flex items-end gap-4">
+            <Link
+              href="/"
+              className="font-serif text-[28px] font-semibold leading-none tracking-tight text-admin-text hover:text-safety-org"
+              style={{ fontFeatureSettings: '"liga","dlig"' }}
+            >
+              ResQRoute
+            </Link>
+            <span className="mb-[3px] font-serif italic text-[13px] leading-none text-admin-muted">
+              the command centre
+            </span>
+          </div>
+          <div className="flex items-end gap-3">
+            <span className="mb-[2px] font-mono text-[9px] uppercase tracking-[.2em] text-admin-muted">
+              Vol. I · Bengaluru Edition · No. 01
+            </span>
+            <button
+              onClick={refresh}
+              className="inline-flex items-center gap-1 border border-admin-rule px-2 py-1 font-mono text-[9px] uppercase tracking-[.16em] text-admin-muted transition hover:border-admin-text hover:text-admin-text"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Refresh
+            </button>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1 font-serif italic text-[11px] text-admin-muted hover:text-admin-text"
+            >
+              <ArrowLeft className="h-3 w-3" />
+              return home
+            </Link>
+          </div>
+        </div>
+
+        {/* Section line — thin rule with inline tagline */}
+        <div className="flex items-center gap-3 px-6 py-1.5">
+          <span className="font-serif text-[10px] italic text-admin-muted">
+            Real-time multi-agent intelligence for urban rescue operations.
+          </span>
+          <span className="ml-auto font-mono text-[9px] uppercase tracking-[.16em] text-admin-muted">
+            Issued continuously · Sources: TomTom · Open-Meteo · GDACS · GNews · USGS
           </span>
         </div>
       </header>
 
       {/* BODY */}
-      <div className="grid flex-1 overflow-hidden md:grid-cols-[200px_1fr]">
-        {/* SIDEBAR */}
-        <aside className="hidden border-r border-admin-rule bg-[#141a21] py-4 md:flex md:flex-col">
-          {sections.map((sec) => (
-            <div key={sec}>
-              <SidebarSection label={sec} />
+      <div className="grid flex-1 overflow-hidden md:grid-cols-[220px_1fr]">
+        {/* SIDEBAR — editorial table of contents */}
+        <aside className="hidden border-r border-admin-rule bg-onyx py-4 md:flex md:flex-col">
+          <div className="px-5 pb-2">
+            <div className="font-mono text-[9px] uppercase tracking-[.2em] text-admin-muted">
+              Contents
+            </div>
+            <div className="mt-1 h-px bg-admin-text" />
+          </div>
+          {sections.map((sec, idx) => (
+            <div key={sec} className={idx === 0 ? "" : "mt-3"}>
+              <SidebarSection label={sec} index={idx + 1} />
               {NAV.filter((n) => n.section === sec).map((item) => (
                 <SidebarItem
                   key={item.id}
@@ -266,11 +322,12 @@ export default function AuthorityPage() {
               ))}
             </div>
           ))}
-          <div className="mt-auto border-t border-admin-rule px-4 pt-3">
-            <div className="font-mono text-[9px] uppercase tracking-[.14em] text-steel-light">
-              Operator
+          <div className="mt-auto px-5 pt-3">
+            <div className="h-px bg-admin-rule" />
+            <div className="mt-2 font-serif text-[10px] uppercase tracking-[.18em] text-admin-muted">
+              Filed by
             </div>
-            <div className="mt-1 truncate text-[11px] text-admin-text">
+            <div className="mt-0.5 font-serif italic text-[12px] text-admin-text">
               ndrf.bengaluru
             </div>
           </div>
@@ -278,46 +335,61 @@ export default function AuthorityPage() {
 
         {/* CONTENT */}
         <div className="flex flex-col overflow-hidden">
-          {/* Stat row — always visible */}
-          <div className="grid grid-cols-2 gap-2 border-b border-admin-rule bg-onyx p-3 md:grid-cols-4">
-            <StatCard
-              label="Active Missions"
-              value={activeMissions.length}
-              accent="orange"
-              sub={
-                missions.length > activeMissions.length
-                  ? `${missions.length} total queued`
-                  : "All running"
-              }
+          {/* On the Live Map view we collapse the four stat cards into a
+              single editorial standfirst line — the data is already
+              echoed in the missions panel and the crew, so this is just
+              an at-a-glance summary. Other views keep the full ledger. */}
+          {view === "live_map" ? (
+            <Standfirst
+              activeCount={activeMissions.length}
+              totalCount={missions.length}
+              severityLabel={severityLabel}
+              severityClass={severityClass}
+              hazardCount={hazards.length}
+              avgEta={avgEta}
+              eventCount={stats?.total_events ?? 0}
             />
-            <StatCard
-              label="Severity"
-              value={severityLabel}
-              accent="custom"
-              valueClass={severityClass}
-              sub={
-                hazards.length
-                  ? `${hazards.length} active hazard${hazards.length === 1 ? "" : "s"}`
-                  : "No active hazards"
-              }
-            />
-            <StatCard
-              label="Agents"
-              value="6/6"
-              accent="green"
-              sub="All operational"
-            />
-            <StatCard
-              label="Avg ETA"
-              value={avgEta}
-              accent="white"
-              sub={
-                stats?.total_events
-                  ? `${stats.total_events} events streamed`
-                  : "Awaiting data"
-              }
-            />
-          </div>
+          ) : (
+            <div className="grid grid-cols-2 border-b border-admin-rule bg-onyx-2 md:grid-cols-4">
+              <StatCard
+                label="Active Missions"
+                value={activeMissions.length}
+                accent="ink"
+                sub={
+                  missions.length > activeMissions.length
+                    ? `${missions.length} total queued`
+                    : "all running"
+                }
+              />
+              <StatCard
+                label="Severity"
+                value={severityLabel}
+                accent="custom"
+                valueClass={severityClass}
+                sub={
+                  hazards.length
+                    ? `${hazards.length} active hazard${hazards.length === 1 ? "" : "s"}`
+                    : "no active hazards"
+                }
+              />
+              <StatCard
+                label="Agents"
+                value="6/6"
+                accent="green"
+                sub="all operational"
+              />
+              <StatCard
+                label="Avg ETA"
+                value={avgEta}
+                accent="ink"
+                sub={
+                  stats?.total_events
+                    ? `${stats.total_events} events streamed`
+                    : "awaiting data"
+                }
+              />
+            </div>
+          )}
 
           <div className="flex-1 overflow-hidden">
             {view === "live_map" && (
@@ -327,8 +399,11 @@ export default function AuthorityPage() {
                 selected={selected}
                 onSelect={setSelected}
                 allEvents={allEvents}
-                rightTab={rightTab}
-                onRightTabChange={setRightTab}
+                liveRoutes={liveRoutes}
+                socialSignal={latestSocial}
+                onMissionClick={setOpenMissionId}
+                cinema={!!replay}
+                cinemaEvents={liveEvents}
               />
             )}
             {view === "missions" && (
@@ -337,6 +412,10 @@ export default function AuthorityPage() {
                 selected={selected}
                 onSelect={setSelected}
                 hazards={hazards}
+                liveRoutes={liveRoutes}
+                onMissionClick={setOpenMissionId}
+                cinema={!!replay}
+                cinemaEvents={liveEvents}
               />
             )}
             {view === "reasoning" && (
@@ -351,11 +430,32 @@ export default function AuthorityPage() {
           </div>
         </div>
       </div>
+      <DataSourcesFooter />
+      {openMission && (
+        <MissionDetailDrawer
+          mission={openMission}
+          onClose={() => setOpenMissionId(null)}
+        />
+      )}
+      <CinemaOverlay replay={replay} events={liveEvents} />
     </main>
   );
 }
 
-// ── Live map composite (the original triple-pane) ─────────────
+// ── Live map composite (stacked rail — Map + single switching panel) ──
+//
+// Layout: [Map ~65%] [Rail ~35%]. The rail is a tab strip whose default
+// pick auto-shifts based on pipeline state:
+//
+//   - no events yet                → "drills"   (run a demo)
+//   - any agent currently working  → "crew"     (watch them reason)
+//   - everything settled           → "missions" (review outcomes)
+//
+// The user can override at any time; once they click a tab manually we
+// stop auto-switching for the rest of the session. This avoids the
+// "panel jumped under my mouse" surprise.
+
+type RailTab = "missions" | "crew" | "metrics" | "drills";
 
 function LiveMapView({
   hazards,
@@ -363,69 +463,164 @@ function LiveMapView({
   selected,
   onSelect,
   allEvents,
-  rightTab,
-  onRightTabChange,
+  liveRoutes,
+  socialSignal,
+  onMissionClick,
+  cinema,
+  cinemaEvents,
 }: {
   hazards: HazardZone[];
   missions: Mission[];
   selected: string | null;
   onSelect: (id: string | null) => void;
   allEvents: AgentEvent[];
-  rightTab: "reasoning" | "metrics";
-  onRightTabChange: (t: "reasoning" | "metrics") => void;
+  liveRoutes: ReturnType<typeof useAuthorityWS>["routes"];
+  socialSignal: ReturnType<typeof useAuthorityWS>["latestSocial"];
+  onMissionClick?: (missionId: string) => void;
+  cinema?: boolean;
+  cinemaEvents?: AgentEvent[];
 }) {
+  const [rail, setRail] = useState<RailTab>("drills");
+  const [userOverride, setUserOverride] = useState(false);
+
+  // Auto-pick the most useful panel based on pipeline activity. Only fires
+  // until the user clicks a tab themselves.
+  const autoTab: RailTab = useMemo(() => {
+    if (allEvents.length === 0) return "drills";
+    const recent = allEvents.slice(0, 30);
+    const RECENT_MS = 45_000;
+    const now = Date.now();
+    const isWorking = recent.some(
+      (e) => now - new Date(e.timestamp).getTime() < RECENT_MS,
+    );
+    if (isWorking) return "crew";
+    if (missions.length > 0) return "missions";
+    return "crew";
+  }, [allEvents, missions]);
+
+  useEffect(() => {
+    if (!userOverride) setRail(autoTab);
+  }, [autoTab, userOverride]);
+
+  const onTab = (t: RailTab) => {
+    setUserOverride(true);
+    setRail(t);
+  };
+
   return (
-    <div className="grid h-full overflow-hidden md:grid-cols-[1fr_360px_360px]">
+    <div className="grid h-full overflow-hidden md:grid-cols-[1fr_400px]">
       <div className="relative">
         <MapView
           hazards={hazards}
           missions={missions}
           selectedMission={selected}
+          liveRoutes={liveRoutes}
+          onMissionClick={onMissionClick}
+          cinema={cinema}
+          cinemaEvents={cinemaEvents}
         />
         <div className="pointer-events-none absolute left-3 top-3 space-y-2">
           <Legend />
         </div>
-        <div className="pointer-events-none absolute right-3 top-3 inline-flex items-center gap-1.5 border border-admin-rule bg-onyx/80 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[.1em] text-steel-light backdrop-blur">
-          <span className="h-1.5 w-1.5 rounded-full bg-safety-org live-pulse-orange" />
-          Mapbox · Live Operations
+        <div className="pointer-events-none absolute right-3 top-3 inline-flex items-center gap-2 border border-admin-rule bg-onyx-2 px-3 py-1 shadow-[0_1px_0_rgba(0,0,0,0.05)]">
+          <span className="h-1.5 w-1.5 bg-safety-org live-pulse" />
+          <span className="font-serif text-[10px] italic text-admin-muted">
+            live operations · Mapbox
+          </span>
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 overflow-hidden border-l border-admin-rule p-3">
-        <DemoLauncher />
-        <div className="min-h-0 flex-1">
-          <MissionsPanel
-            missions={missions}
-            selected={selected}
-            onSelect={onSelect}
+      <aside className="flex flex-col overflow-hidden border-l border-admin-rule bg-onyx">
+        {/* Rail tab strip — no boxes, just a hairline below */}
+        <div className="flex items-stretch border-b border-admin-rule bg-onyx-2">
+          <RailTabButton
+            active={rail === "missions"}
+            onClick={() => onTab("missions")}
+            label="Missions"
+            count={missions.length}
           />
-        </div>
-      </div>
-
-      <div className="flex flex-col overflow-hidden border-l border-admin-rule p-3">
-        <div className="mb-2 flex border border-admin-rule bg-slate">
-          <TabButton
-            active={rightTab === "reasoning"}
-            onClick={() => onRightTabChange("reasoning")}
-            icon={<Brain className="h-3 w-3" />}
+          <RailTabButton
+            active={rail === "crew"}
+            onClick={() => onTab("crew")}
             label="Crew"
+            count={
+              allEvents.length > 99 ? 99 : allEvents.length
+            }
           />
-          <TabButton
-            active={rightTab === "metrics"}
-            onClick={() => onRightTabChange("metrics")}
-            icon={<BarChart3 className="h-3 w-3" />}
+          <RailTabButton
+            active={rail === "metrics"}
+            onClick={() => onTab("metrics")}
             label="Metrics"
           />
+          <RailTabButton
+            active={rail === "drills"}
+            onClick={() => onTab("drills")}
+            label="Drills"
+          />
         </div>
-        <div className="relative min-h-0 flex-1">
-          {rightTab === "reasoning" ? (
-            <AgentCrewPanel events={allEvents} />
-          ) : (
-            <MetricsPanel />
+
+        {/* Rail body */}
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          {rail === "missions" && (
+            <MissionsPanel
+              missions={missions}
+              selected={selected}
+              onSelect={onSelect}
+            />
+          )}
+          {rail === "crew" && (
+            <AgentCrewPanel events={allEvents} socialSignal={socialSignal} />
+          )}
+          {rail === "metrics" && <MetricsPanel />}
+          {rail === "drills" && (
+            <div className="h-full overflow-y-auto p-4">
+              <DemoLauncher />
+            </div>
           )}
         </div>
-      </div>
+      </aside>
     </div>
+  );
+}
+
+function RailTabButton({
+  active,
+  onClick,
+  label,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count?: number;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={
+        "group flex flex-1 items-baseline justify-center gap-1.5 border-r border-admin-rule px-2 py-2.5 transition last:border-r-0 " +
+        (active
+          ? "bg-onyx text-admin-text"
+          : "bg-onyx-2 text-admin-muted hover:bg-onyx hover:text-admin-text")
+      }
+    >
+      <span
+        className={
+          "font-serif text-[13px] " +
+          (active ? "italic" : "")
+        }
+      >
+        {label}
+      </span>
+      {typeof count === "number" && (
+        <span
+          className="font-mono text-[10px] tracking-[.04em] text-admin-muted"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          {String(count).padStart(2, "0")}
+        </span>
+      )}
+    </button>
   );
 }
 
@@ -436,11 +631,19 @@ function MissionsFullView({
   selected,
   onSelect,
   hazards,
+  liveRoutes,
+  onMissionClick,
+  cinema,
+  cinemaEvents,
 }: {
   missions: Mission[];
   selected: string | null;
   onSelect: (id: string | null) => void;
   hazards: HazardZone[];
+  liveRoutes: ReturnType<typeof useAuthorityWS>["routes"];
+  onMissionClick?: (missionId: string) => void;
+  cinema?: boolean;
+  cinemaEvents?: AgentEvent[];
 }) {
   return (
     <div className="grid h-full overflow-hidden md:grid-cols-[1fr_460px]">
@@ -449,6 +652,10 @@ function MissionsFullView({
           hazards={hazards}
           missions={missions}
           selectedMission={selected}
+          liveRoutes={liveRoutes}
+          onMissionClick={onMissionClick}
+          cinema={cinema}
+          cinemaEvents={cinemaEvents}
         />
       </div>
       <div className="flex flex-col overflow-hidden border-l border-admin-rule p-3">
@@ -479,10 +686,22 @@ function ReasoningFullView({ events }: { events: AgentEvent[] }) {
 
 // ── Subcomponents ────────────────────────────────────────────
 
-function SidebarSection({ label }: { label: string }) {
+function SidebarSection({ label, index }: { label: string; index: number }) {
   return (
-    <div className="mb-1 px-4 pt-3 font-mono text-[9px] uppercase tracking-[.14em] text-steel-light">
-      {label}
+    <div className="mb-1 flex items-baseline gap-2 px-5 pt-2">
+      <span
+        className="font-mono text-[9px] tracking-[.16em] text-admin-muted"
+        style={{ fontVariantNumeric: "tabular-nums" }}
+      >
+        {String(index).padStart(2, "0")}
+      </span>
+      <span
+        className="font-serif text-[11px] tracking-[.16em] text-admin-text"
+        style={{ fontVariantCaps: "small-caps" }}
+      >
+        {label}
+      </span>
+      <span className="ml-1 h-px flex-1 bg-admin-rule" />
     </div>
   );
 }
@@ -505,23 +724,48 @@ function SidebarItem({
     <button
       onClick={onClick}
       className={
-        "flex w-full items-center gap-2.5 border-l-2 px-4 py-2 text-left text-[12px] tracking-wide transition " +
+        "group flex w-full items-baseline gap-2 px-5 py-1 text-left text-[13px] transition-colors " +
         (active
-          ? "border-safety-org bg-safety-org/15 font-medium text-safety-org"
-          : "border-transparent text-steel-light hover:bg-white/[0.03] hover:text-admin-text")
+          ? "text-admin-text"
+          : "text-admin-muted hover:text-admin-text")
       }
     >
-      <Icon className="h-3 w-3" />
-      <span className="flex-1">{item.label}</span>
+      <Icon
+        className={
+          "h-3 w-3 self-center " +
+          (active ? "text-safety-org" : "opacity-60")
+        }
+      />
+      <span
+        className={
+          "flex-1 font-serif " +
+          (active ? "italic" : "")
+        }
+      >
+        {item.label}
+      </span>
       {badge ? (
-        <span className="rounded-full bg-danger px-1.5 py-px font-mono text-[9px] text-white">
-          {badge}
+        <span
+          className="font-mono text-[10px] text-danger"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          {String(badge).padStart(2, "0")}
         </span>
       ) : alertBadge ? (
-        <span className="rounded-full bg-safety-org px-1.5 py-px font-mono text-[9px] text-onyx">
-          {alertBadge}
+        <span
+          className="font-mono text-[10px] text-safety-org"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          {String(alertBadge).padStart(2, "0")}
         </span>
-      ) : null}
+      ) : (
+        <span
+          className="font-mono text-[10px] text-admin-muted/40"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          {active ? "■" : "·"}
+        </span>
+      )}
     </button>
   );
 }
@@ -535,7 +779,7 @@ function StatCard({
 }: {
   label: string;
   value: string | number;
-  accent: "orange" | "red" | "green" | "white" | "custom";
+  accent: "orange" | "red" | "green" | "white" | "ink" | "custom";
   valueClass?: string;
   sub?: string;
 }) {
@@ -547,65 +791,145 @@ function StatCard({
         : accent === "red"
           ? "text-danger"
           : accent === "green"
-            ? "text-cleared"
+            ? "text-safety-org"
             : "text-admin-text";
   return (
-    <div className="border border-admin-rule bg-onyx-2 px-4 py-3">
-      <div className="font-mono text-[9px] uppercase tracking-[.14em] text-steel-light">
+    <div className="relative border-r border-admin-rule px-6 py-4 last:border-r-0">
+      <div className="font-serif text-[10px] uppercase tracking-[.18em] text-admin-muted">
         {label}
       </div>
       <div
-        className={`mt-1.5 font-serif text-[26px] font-normal leading-none ${cls}`}
+        className={`mt-1.5 font-mono text-[32px] leading-none ${cls}`}
+        style={{ fontVariantNumeric: "tabular-nums", letterSpacing: "-0.01em" }}
       >
         {value}
       </div>
       {sub && (
-        <div className="mt-1 truncate text-[10px] text-steel-light">{sub}</div>
+        <div className="mt-1.5 font-serif text-[11px] italic text-admin-muted">
+          {sub}
+        </div>
       )}
     </div>
   );
 }
 
-function TabButton({
-  active,
-  onClick,
-  icon,
-  label,
+/**
+ * Standfirst — replaces the four-card stat row on the Live Map view.
+ *
+ * Editorial publications use a "standfirst" or "deck" line under the
+ * masthead to summarise the situation in one breath. We mirror that:
+ * one row, hairline-bordered, mono numerals separated by middle-dots.
+ * If something needs urgent attention (severity HIGH+ or hazards present)
+ * the relevant token gets the danger / accent colour, rest stays muted.
+ */
+function Standfirst({
+  activeCount,
+  totalCount,
+  severityLabel,
+  severityClass,
+  hazardCount,
+  avgEta,
+  eventCount,
 }: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
+  activeCount: number;
+  totalCount: number;
+  severityLabel: string;
+  severityClass: string;
+  hazardCount: number;
+  avgEta: string;
+  eventCount: number;
 }) {
   return (
-    <button
-      onClick={onClick}
-      className={
-        "flex flex-1 items-center justify-center gap-1.5 px-3 py-2 font-mono text-[10px] uppercase tracking-[.12em] transition " +
-        (active
-          ? "bg-safety-org/15 text-safety-org"
-          : "text-steel-light hover:bg-white/5 hover:text-admin-text")
-      }
-    >
-      {icon}
-      {label}
-    </button>
+    <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 border-b border-admin-rule bg-onyx-2 px-6 py-2.5">
+      <span className="font-serif italic text-[11px] text-admin-muted">
+        At a glance —
+      </span>
+      <Metric label="active" value={String(activeCount).padStart(2, "0")} />
+      {totalCount > activeCount && (
+        <Metric
+          label="queued"
+          value={String(totalCount - activeCount).padStart(2, "0")}
+          muted
+        />
+      )}
+      <Metric
+        label="severity"
+        valueClass={severityClass}
+        valueRaw
+        value={severityLabel}
+      />
+      <Metric
+        label="hazards"
+        value={String(hazardCount).padStart(2, "0")}
+        muted={hazardCount === 0}
+      />
+      <Metric label="agents" value="6/6" muted />
+      <Metric label="ETA" value={avgEta} />
+      <span className="ml-auto font-serif italic text-[11px] text-admin-muted">
+        <span
+          className="font-mono not-italic"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          {String(eventCount).padStart(3, "0")}
+        </span>{" "}
+        events streamed
+      </span>
+    </div>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  valueClass,
+  valueRaw,
+  muted,
+}: {
+  label: string;
+  value: string;
+  valueClass?: string;
+  /** If true, render the value in serif (for non-numeric labels like severity). */
+  valueRaw?: boolean;
+  muted?: boolean;
+}) {
+  return (
+    <span className="inline-flex items-baseline gap-1.5">
+      <span className="font-serif text-[10px] uppercase tracking-[.18em] text-admin-muted">
+        {label}
+      </span>
+      <span
+        className={
+          (valueRaw ? "font-serif text-[13px] italic " : "font-mono text-[13px] ") +
+          (valueClass ?? (muted ? "text-admin-muted" : "text-admin-text"))
+        }
+        style={
+          valueRaw
+            ? undefined
+            : {
+                fontVariantNumeric: "tabular-nums",
+                letterSpacing: "-0.005em",
+              }
+        }
+      >
+        {value}
+      </span>
+    </span>
   );
 }
 
 function Legend() {
   return (
-    <div className="dark-scope border border-admin-rule bg-onyx-2/85 px-2.5 py-2 backdrop-blur">
-      <div className="mb-1.5 font-mono text-[9px] font-medium uppercase tracking-[.14em] text-steel-light">
-        Map Legend
+    <div className="border border-admin-rule bg-onyx-2 px-3 py-2 shadow-[0_1px_0_rgba(0,0,0,0.05)]">
+      <div className="mb-1.5 font-serif text-[10px] uppercase tracking-[.18em] text-admin-muted">
+        Map · Legend
       </div>
-      <div className="space-y-1 text-[10px] text-admin-muted">
+      <div className="space-y-0.5 font-serif text-[11px] text-admin-text">
         <Row color="#ef4444" label="Critical hazard" />
         <Row color="#f87171" label="High hazard" />
         <Row color="#fb923c" label="Medium hazard" />
         <Row color="#facc15" label="Low hazard" />
-        <Row color="#34d399" label="Selected route" />
-        <Row color="#60a5fa" label="Active route" />
+        <Row color="#1A5C41" label="Active route" />
+        <Row color="#2E8B63" label="Selected route" />
       </div>
     </div>
   );
@@ -615,7 +939,7 @@ function Row({ color, label }: { color: string; label: string }) {
   return (
     <div className="flex items-center gap-1.5">
       <span
-        className="inline-block h-2 w-2 rounded-full"
+        className="inline-block h-2 w-2"
         style={{ background: color }}
       />
       {label}

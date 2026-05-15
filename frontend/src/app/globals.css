@@ -28,24 +28,36 @@
   --safe-green:  #166534;
   --safe-pale:   #DCFCE7;
 
-  /* Field Operations — authority
-     Green-family dark scope (forest-tinted onyx, mint accents),
-     uniform with the citizen / landing palette. Variable NAMES are
-     kept stable so existing Tailwind utilities (text-safety-org,
-     bg-onyx, etc.) automatically pick up the new hues. */
-  --onyx:        #0F1A14;   /* deep forest-tinted charcoal */
-  --onyx-2:      #0A1410;   /* even deeper for cards/headers */
-  --slate:       #1B2A22;   /* tabs / subtle surfaces */
-  --steel:       #355040;   /* rules / borders mid */
-  --steel-light: #7E9989;   /* secondary text */
-  --admin-text:  #E5EFE9;   /* primary text on dark green */
-  --admin-muted: #A9C2B5;   /* secondary text */
-  --admin-rule:  #234034;   /* hairlines */
-  --safety-org:  #6BBD95;   /* PRIMARY ACCENT — light-green
-                                (replaces the orange "safety-org") */
-  --org-pale:    rgba(107, 189, 149, 0.15);
-  --danger:      #E25A5A;   /* emergency red, slightly warmer */
-  --cleared:     #2E8B63;   /* mid-green (success) */
+  /* Field Operations — authority (default = light editorial / Monocle)
+     ────────────────────────────────────────────────────────────────
+     Variable NAMES are kept identical to the previous dark scope so
+     every existing Tailwind utility (`bg-onyx`, `text-admin-text`,
+     `border-admin-rule`, `text-safety-org`, …) re-skins automatically
+     to the editorial palette. No per-class churn required.
+
+     Mental model:
+       --onyx       → page paper          (was deepest dark)
+       --onyx-2     → card paper          (was card dark)
+       --slate      → subtle surface      (was darker tab)
+       --steel      → mid rule            (was mid border)
+       --steel-light→ secondary ink (mid grey)
+       --admin-text → primary ink (near-black)
+       --admin-muted→ tertiary ink
+       --admin-rule → hairline (1px grey)
+       --safety-org → single editorial accent (deep forest green)
+  */
+  --onyx:        #FAF7F2;   /* page paper — warm off-white */
+  --onyx-2:      #FFFFFF;   /* card paper — pure white */
+  --slate:       #F1ECE3;   /* subtle ledger surface */
+  --steel:       #C9C2B2;   /* mid rule */
+  --steel-light: #6F6A5F;   /* secondary ink */
+  --admin-text:  #1B1A17;   /* primary ink — almost black */
+  --admin-muted: #4A453C;   /* tertiary ink */
+  --admin-rule:  #D9D2C3;   /* hairline */
+  --safety-org:  #1A5C41;   /* editorial green accent (deep forest) */
+  --org-pale:    rgba(26, 92, 65, 0.08);
+  --danger:      #A51C1C;   /* deep editorial red */
+  --cleared:     #166534;   /* dark green (success) */
 
   /* Fonts */
   --font-serif:  "Noto Serif", Georgia, serif;
@@ -92,86 +104,82 @@ body {
   border-radius: 3px;
 }
 
-/* When inside a dark surface, use a dimmer scrollbar */
 .dark-scope ::-webkit-scrollbar-thumb {
-  background: rgba(160, 174, 192, 0.18);
+  background: rgba(0, 0, 0, 0.16);
 }
 
-/* ── Map (mapbox) overrides ── */
+/* ── Map (mapbox) overrides ──
+   The map itself stays dark (high-contrast background for routes /
+   hazards), but the chrome around it (popups, attribution) needs to
+   flip to the editorial paper palette. */
 @import "mapbox-gl/dist/mapbox-gl.css";
 
 .mapboxgl-popup-content {
-  background: var(--onyx) !important;
-  color: var(--admin-text) !important;
-  border: 1px solid var(--admin-rule);
-  border-radius: 2px;
-  font-family: var(--font-mono);
-  font-size: 11px;
+  background: #FFFFFF !important;
+  color: #1B1A17 !important;
+  border: 1px solid #D9D2C3;
+  border-radius: 0;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+  font-family: var(--font-serif);
+  font-size: 12px;
+  padding: 10px 12px;
 }
 .mapboxgl-popup-tip {
-  border-top-color: var(--onyx) !important;
-  border-bottom-color: var(--onyx) !important;
+  border-top-color: #FFFFFF !important;
+  border-bottom-color: #FFFFFF !important;
 }
 .mapboxgl-ctrl-attrib,
 .mapboxgl-ctrl-logo {
   opacity: 0.4;
 }
+.mapboxgl-ctrl-group {
+  border: 1px solid #D9D2C3 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
 
 /* ═══════════════════════════════
-   Animations
+   Animations — editorial / Monocle
+   Editorial layouts don't blink at the reader. Pulse classes survive as
+   inert no-ops so existing markup keeps compiling, with one quiet 2-state
+   blink for genuinely live indicators (LIVE / OFFLINE).
 ═══════════════════════════════ */
 
-@keyframes live-pulse {
-  0%, 100% {
-    opacity: 1;
-    box-shadow: 0 0 0 0 rgba(107, 189, 149, 0.55);
-  }
-  50% {
-    opacity: 0.7;
-    box-shadow: 0 0 0 6px rgba(107, 189, 149, 0);
-  }
+@keyframes blink-quiet {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
 }
-.live-pulse {
-  animation: live-pulse 1.8s ease infinite;
-}
-/* ".live-pulse-orange" is kept under the same class name for backwards
-   compatibility (used by topbar LIVE indicator etc.) but now pulses in
-   the command-centre green so it aligns with the rest of the palette. */
+.live-pulse,
 .live-pulse-orange {
-  animation: live-pulse-org 1.5s ease infinite;
-  box-shadow: 0 0 0 0 rgba(107, 189, 149, 0.55);
-}
-@keyframes live-pulse-org {
-  0%, 100% {
-    opacity: 1;
-    box-shadow: 0 0 0 0 rgba(107, 189, 149, 0.55);
-  }
-  50% {
-    opacity: 0.7;
-    box-shadow: 0 0 0 6px rgba(107, 189, 149, 0);
-  }
+  animation: blink-quiet 2.6s steps(2, end) infinite;
 }
 
-@keyframes ring-pulse {
-  0% { transform: scale(1); opacity: 0.85; }
-  100% { transform: scale(2.2); opacity: 0; }
-}
-.ring-pulse::after {
-  content: "";
-  position: absolute;
-  inset: -4px;
-  border-radius: 50%;
-  border: 1px solid rgba(211, 47, 47, 0.45);
-  animation: ring-pulse 1.5s ease infinite;
+/* Hand-off chevron arrival — small slide+fade as the baton lands on
+   the receiving agent. The element fully unmounts when the React
+   handoffIn flag clears, so we don't need a forward-fill. */
+@keyframes handoff-arrive {
+  0%   { transform: translate(0, -10px) translateY(-50%); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: translate(0, 0) translateY(-50%); opacity: 0.95; }
 }
 
-@keyframes pulse-ring-red {
-  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
-  70% { box-shadow: 0 0 0 18px rgba(239, 68, 68, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+/* Left-edge flash for the receiving agent's row. Forwards keeps the
+   final 0% opacity instead of snapping back to full at the end. */
+@keyframes handoff-flash {
+  0%   { opacity: 0;   transform: scaleY(0.4); }
+  18%  { opacity: 0.9; transform: scaleY(1); }
+  100% { opacity: 0;   transform: scaleY(1); }
 }
+.ring-pulse,
 .pulse-ring {
-  animation: pulse-ring-red 1.6s infinite;
+  /* Intentionally inert. */
+}
+
+/* Cinema-mode pin shimmer ring. Only consumed by <CinemaPinShell> which
+   wraps the IncidentGlyph during a replay. The conic gradient does the
+   visual work; we just rotate the container. */
+@keyframes cinemaSpin {
+  to { transform: rotate(360deg); }
 }
 
 /* ═══════════════════════════════
@@ -182,39 +190,58 @@ body {
 .font-sans-ui      { font-family: var(--font-sans); }
 .font-mono-ops     { font-family: var(--font-mono); }
 
+/* ═══════════════════════════════
+   Editorial typography helpers
+═══════════════════════════════ */
+
 .kicker {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-family: var(--font-serif);
+  font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--mid-green);
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-}
-.kicker::before {
-  content: "";
-  display: block;
-  width: 28px;
-  height: 2px;
-  background: currentColor;
+  color: var(--admin-muted);
+  display: inline-block;
 }
 .kicker.dark { color: var(--safety-org); }
+.kicker.accent { color: var(--safety-org); }
 
 .serif-h {
   font-family: var(--font-serif);
   font-weight: 400;
   letter-spacing: -0.01em;
-  line-height: 1.12;
-  color: var(--forest);
+  line-height: 1.1;
+  color: var(--admin-text);
 }
-.serif-h em { font-style: italic; color: var(--mid-green); }
+.serif-h em { font-style: italic; color: var(--safety-org); }
 .serif-h strong { font-weight: 600; }
 .serif-h.on-dark { color: var(--admin-text); }
 .serif-h.on-dark em { color: var(--safety-org); }
-.serif-h.on-forest { color: var(--warm-white); }
-.serif-h.on-forest em { color: var(--light-green); }
+
+/* Section masthead: small caps + double rule, used for sidebar groups
+   and top-of-card headers. */
+.section-head {
+  font-family: var(--font-serif);
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-caps: small-caps;
+  letter-spacing: 0.14em;
+  color: var(--admin-text);
+  border-top: 1px solid var(--admin-text);
+  border-bottom: 1px solid var(--admin-rule);
+  padding: 6px 0 4px;
+}
+
+/* Italic caption — used for sub-labels, "as of" timestamps, source
+   attribution, etc. Editorial publications use italics liberally for
+   metadata. */
+.italic-caption {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 11px;
+  color: var(--admin-muted);
+  letter-spacing: 0;
+}
 
 .mono-label {
   font-family: var(--font-mono);
@@ -223,9 +250,20 @@ body {
   text-transform: uppercase;
   color: var(--steel-light);
 }
-.mono-label.green { color: var(--mid-green); }
+.mono-label.green { color: var(--cleared); }
 .mono-label.orange { color: var(--safety-org); }
 .mono-label.bright { color: var(--admin-text); }
+
+/* Mono numerals ready for tabular data tables. */
+.mono-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+/* Hairline rule — the single most important editorial element. Use as
+   <hr class="hairline"/> or `border-bottom: 1px solid var(--admin-rule)`. */
+.hairline { border: none; border-top: 1px solid var(--admin-rule); margin: 0; }
 
 /* Map grid backdrop (used for map placeholders) */
 .map-grid {
@@ -253,72 +291,43 @@ body {
 }
 
 /* ═══════════════════════════════
-   Glass flashcards (agent reasoning)
+   "Glass" flashcards — flattened to ops-console panels.
+
+   Same class names so existing components keep working without churn,
+   but now they're flat panels with hairline borders. No gradients, no
+   blur, no halo, no scale-on-hover. Hover just brightens the border by
+   one notch. This is what real ops software looks like.
 ═══════════════════════════════ */
 
 .glass-card {
   position: relative;
-  background:
-    linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 60%, rgba(0,0,0,0.15) 100%);
-  border: 1px solid rgba(255,255,255,0.08);
-  backdrop-filter: blur(12px) saturate(140%);
-  -webkit-backdrop-filter: blur(12px) saturate(140%);
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-}
-.glass-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.04) 35%, transparent 70%);
-  pointer-events: none;
+  background: var(--onyx-2);
+  border: 1px solid var(--admin-rule);
+  transition: border-color 0.12s linear, background 0.12s linear;
 }
 .glass-card:hover {
-  transform: translateY(-1px);
-  border-color: rgba(255,255,255,0.16);
-  box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+  border-color: var(--steel);
+  background: var(--slate);
 }
 .glass-card.flipping {
-  box-shadow: 0 0 0 1px var(--agent-color, #6BBD95), 0 0 24px -4px var(--agent-color, #6BBD95);
+  border-color: var(--agent-color, var(--safety-org));
 }
 
-.glass-halo {
-  position: absolute;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: radial-gradient(circle at center, var(--agent-color, #6BBD95) 0%, transparent 70%);
-  opacity: 0.35;
-  filter: blur(10px);
-  pointer-events: none;
-}
-.glass-halo.live { animation: halo-pulse 2.2s ease-in-out infinite; }
-@keyframes halo-pulse {
-  0%, 100% { opacity: 0.32; transform: scale(1); }
-  50%      { opacity: 0.55; transform: scale(1.15); }
-}
+/* Halo / ring / inner-glow are all visual gimmicks we no longer want.
+   Keep the selectors so JSX referencing them doesn't crash, but make
+   them inert. */
+.glass-halo,
+.glass-icon-ring.live::after { display: none; }
 
 .glass-icon-ring {
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--agent-color, rgba(255,255,255,0.18));
-  color: var(--agent-color, #6BBD95);
+  background: transparent;
+  border: 1px solid var(--agent-color, var(--admin-rule));
+  color: var(--agent-color, var(--safety-org));
   flex-shrink: 0;
-}
-.glass-icon-ring.live::after {
-  content: "";
-  position: absolute;
-  inset: -3px;
-  border-radius: 50%;
-  border: 1px solid var(--agent-color, #6BBD95);
-  animation: glass-ring 1.6s ease-out infinite;
-}
-@keyframes glass-ring {
-  0%   { transform: scale(1);   opacity: 0.85; }
-  100% { transform: scale(1.6); opacity: 0;    }
 }

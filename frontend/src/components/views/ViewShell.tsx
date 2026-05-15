@@ -15,20 +15,26 @@ export function ViewShell({
 }) {
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="flex items-center justify-between border-b border-admin-rule bg-onyx-2/50 px-5 py-3">
+      {/* Editorial section masthead — double rule + serif headline */}
+      <div className="flex items-end justify-between border-b border-admin-text bg-onyx-2 px-6 pb-2 pt-4">
         <div>
           {kicker && (
-            <div className="font-mono text-[9px] uppercase tracking-[.18em] text-safety-org">
+            <div className="font-mono text-[9px] uppercase tracking-[.2em] text-admin-muted">
               {kicker}
             </div>
           )}
-          <h2 className="font-serif text-[18px] font-normal leading-tight text-admin-text">
+          <h2
+            className="mt-0.5 font-serif text-[26px] font-semibold leading-none tracking-tight text-admin-text"
+            style={{ letterSpacing: "-0.01em" }}
+          >
             {title}
           </h2>
         </div>
         {actions && <div className="flex items-center gap-2">{actions}</div>}
       </div>
-      <div className="scroll-thin flex-1 overflow-y-auto">{children}</div>
+      <div className="scroll-thin flex-1 overflow-y-auto bg-onyx">
+        {children}
+      </div>
     </div>
   );
 }
@@ -42,11 +48,11 @@ export function EmptyState({
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 py-16 text-center">
-      <div className="font-mono text-[10px] uppercase tracking-[.14em] text-steel-light">
+      <div className="font-serif text-[10px] uppercase tracking-[.18em] text-admin-muted">
         {title}
       </div>
       {hint && (
-        <div className="mt-1.5 max-w-[300px] text-[11px] text-steel-light/70">
+        <div className="mt-2 max-w-[320px] font-serif italic text-[12px] leading-relaxed text-admin-muted">
           {hint}
         </div>
       )}

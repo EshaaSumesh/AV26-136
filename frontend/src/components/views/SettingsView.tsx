@@ -58,7 +58,7 @@ export default function SettingsView() {
   }
 
   return (
-    <ViewShell kicker="ADMIN" title="Settings">
+    <ViewShell kicker="Admin · Configuration" title="Settings">
       <div className="space-y-6 p-5">
         <Section title="Display preferences">
           <Row

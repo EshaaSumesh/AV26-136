@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 AGENT_NAMES = [
     "situation_awareness",
+    "social_media_intel",
     "hazard_assessment",
     "dispatch_strategist",
     "route_optimizer",
